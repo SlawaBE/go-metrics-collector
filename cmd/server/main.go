@@ -1,3 +1,9 @@
 package main
 
-func main() {}
+import (
+	"github.com/SlawaBE/go-metrics-collector/internal/server"
+)
+
+func main() {
+    server.Run()
+}
