@@ -19,9 +19,19 @@ func NewUpdateMetricHandler(service *service.MetricsService) *UpdateMetricHandle
 func (h *UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 
+	if r.Method != http.MethodPost {
+        w.WriteHeader(http.StatusMethodNotAllowed)
+        return
+	}
+
 	metricType := r.PathValue("type")
 	metricName := r.PathValue("name")
 	metricValue := r.PathValue("value")
+
+	if metricName == "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	err := h.service.UpdateMetric(metricType, metricName, metricValue)
 

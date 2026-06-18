@@ -21,6 +21,10 @@ func NewMetricsService(s Storage) *MetricsService {
 }
 
 func (m *MetricsService) UpdateMetric(mType, name, value string) error {
+	if name == "" {
+		return errors.New("empty metric name")
+	}
+
 	switch mType {
 	case "counter":
 		intValue, err := strconv.ParseInt(value, 10, 64)
