@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/SlawaBE/go-metrics-collector/internal/handler"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -125,7 +124,7 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 	}
 
 	service := service.NewMetricsService(storage.NewMemStorage())
-	handler := handler.NewUpdateMetricHandler(service)
+	handler := NewUpdateMetricHandler(service)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

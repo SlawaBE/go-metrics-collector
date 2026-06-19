@@ -3,18 +3,16 @@ package service
 import (
 	"errors"
 	"strconv"
+
+	"github.com/SlawaBE/go-metrics-collector/internal/model"
+	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 )
 
 type MetricsService struct {
-	storage Storage
+	storage storage.Storage
 }
 
-type Storage interface {
-	SaveCounter(key string, value int64) error
-	SaveGauge(key string, value float64) error
-}
-
-func NewMetricsService(s Storage) *MetricsService {
+func NewMetricsService(s storage.Storage) *MetricsService {
 	return &MetricsService{
 		storage: s,
 	}
@@ -25,24 +23,27 @@ func (m *MetricsService) UpdateMetric(mType, name, value string) error {
 		return errors.New("empty metric name")
 	}
 
+	var metric model.Metric
+
 	switch mType {
-	case "counter":
+	case model.Counter:
 		intValue, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return errors.New("invalid value")
 		}
-		m.storage.SaveCounter(name, intValue)
+		metric = model.NewCounterMetric(name, intValue)
 
-	case "gauge":
+	case model.Gauge:
 		floatValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return errors.New("invalid value")
 		}
-		m.storage.SaveGauge(name, floatValue)
+		metric = model.NewGaugeMetric(name, floatValue)
 
 	default:
 		return errors.New("unknown metric type")
 	}
 
+	m.storage.UpdateMetric(metric)
 	return nil
 }
