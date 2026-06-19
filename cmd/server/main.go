@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-    server.Run()
+	parseFlags()
+	server.Run(flagRunAddress)
 }

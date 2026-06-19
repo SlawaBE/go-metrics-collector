@@ -17,15 +17,15 @@ type Reporter struct {
 }
 
 type Storage interface {
-    storage.Storage
-    GetValuesAndClear() []model.Metric
+	storage.Storage
+	GetValuesAndClear() []model.Metric
 }
 
-func NewReporter(storage Storage, reportInterval int) *Reporter {
+func NewReporter(storage Storage, reportAddress string, reportInterval int) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseUrl:        "http://localhost:8080/update/",
+		baseUrl:        "http://" + reportAddress + "/update/",
 	}
 }
 
@@ -40,7 +40,7 @@ func (r *Reporter) Report() {
 	metrics := r.storage.GetValuesAndClear()
 	for _, m := range metrics {
 		if err := r.sendMetric(m); err != nil {
-            fmt.Println("Error sending metric:", m.ID)
+			fmt.Println("Error sending metric:", m.ID)
 		}
 	}
 }
@@ -57,9 +57,9 @@ func (r *Reporter) sendMetric(metric model.Metric) error {
 	if err != nil {
 		return fmt.Errorf("error sending metric: %v", err)
 	}
-    if  res.StatusCode != 200 {
-        return fmt.Errorf("error in server response: %v", err)
-    }
+	if res.StatusCode != 200 {
+		return fmt.Errorf("error in server response: %v", err)
+	}
 	res.Body.Close()
 	return nil
 }

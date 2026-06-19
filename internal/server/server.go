@@ -25,9 +25,9 @@ func InitRouter() chi.Router {
 	return r
 }
 
-func Run() {
+func Run(address string) {
 	r := InitRouter()
-	err := http.ListenAndServe(":8080", r)
+	err := http.ListenAndServe(address, r)
 	if err != nil {
 		log.Fatal(err)
 	}
