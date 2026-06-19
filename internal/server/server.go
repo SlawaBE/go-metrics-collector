@@ -7,16 +7,27 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/go-chi/chi/v5"
 )
 
-func Run() {
+func InitRouter() chi.Router {
 	storage := storage.NewMemStorage()
 	service := service.NewMetricsService(storage)
 
-	mux := http.NewServeMux()
-	mux.Handle("POST /update/{type}/{name}/{value}", handler.NewUpdateMetricHandler(service))
+	r := chi.NewRouter()
+	updateHandler := handler.NewUpdateMetricHandler(service)
+	getHandler := handler.NewGetMetricHandler(service)
+	listHandler := handler.NewListMetricHandler(service)
 
-	err := http.ListenAndServe(":8080", mux)
+	r.Handle("GET /", listHandler)
+	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
+	r.Handle("GET /value/{type}/{name}", getHandler)
+	return r
+}
+
+func Run() {
+	r := InitRouter()
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
 		log.Fatal(err)
 	}

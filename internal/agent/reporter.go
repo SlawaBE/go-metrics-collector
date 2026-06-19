@@ -51,7 +51,7 @@ func (r *Reporter) sendMetric(metric model.Metric) error {
 		url = url + strconv.FormatInt(*metric.Delta, 10)
 	}
 	if metric.MType == model.Gauge {
-		url = url + strconv.FormatFloat(*metric.Value, 'e', -1, 64)
+		url = url + strconv.FormatFloat(*metric.Value, 'f', -1, 64)
 	}
 	res, err := http.Post(url, "text/plain", nil)
 	if err != nil {

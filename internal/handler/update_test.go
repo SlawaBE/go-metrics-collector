@@ -7,6 +7,8 @@ import (
 
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,26 +124,26 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 			},
 		},
 	}
-
 	service := service.NewMetricsService(storage.NewMemStorage())
 	handler := NewUpdateMetricHandler(service)
+
+	r := chi.NewRouter()
+	r.Handle("POST /update/{type}/{name}/{value}", handler)
+	srv := httptest.NewServer(r)
+	defer srv.Close()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			url := "/update/" + tt.data.pathType + "/" + tt.data.pathName + "/" + tt.data.pathValue
 
-			r := httptest.NewRequest(tt.data.method, url, nil)
-			r.SetPathValue("type", tt.data.pathType)
-			r.SetPathValue("name", tt.data.pathName)
-			r.SetPathValue("value", tt.data.pathValue)
+			req := resty.New().R()
+			req.Method = tt.data.method
+			req.URL = srv.URL + url
 
-			w := httptest.NewRecorder()
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
 
-			handler.ServeHTTP(w, r)
-			res := w.Result()
-			defer res.Body.Close()
-
-			assert.Equal(t, tt.want.statusCode, res.StatusCode)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode(), "Response code didn't match expected")
 		})
 	}
 }

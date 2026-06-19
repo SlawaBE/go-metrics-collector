@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -46,4 +47,44 @@ func (m *MetricsService) UpdateMetric(mType, name, value string) error {
 
 	m.storage.UpdateMetric(metric)
 	return nil
+}
+
+func (m *MetricsService) GetMetric(mType, name string) (string, error) {
+	if name == "" {
+		return "", errors.New("empty metric name")
+	}
+
+	metric, err := m.storage.GetMetric(name)
+	if err != nil || metric.MType != mType {
+		return "", errors.New("not found")
+	}
+
+	switch mType {
+	case model.Counter:
+		return strconv.FormatInt(*metric.Delta, 10), nil
+	case model.Gauge:
+		return strconv.FormatFloat(*metric.Value, 'f', -1, 64), nil
+	default:
+		return "", errors.New("unknown metric type")
+	}
+}
+
+func (m *MetricsService) List() []string {
+	list := m.storage.GetValues()
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].ID < list[j].ID
+	})
+	res := make([]string, len(list))
+
+	for i, v := range list {
+		switch v.MType {
+		case model.Counter:
+			res[i] = v.ID + ": " + strconv.FormatInt(*v.Delta, 10)
+		case model.Gauge:
+			res[i] = v.ID + ": " + strconv.FormatFloat(*v.Value, 'f', -1, 64)
+		}
+
+	}
+
+	return res
 }

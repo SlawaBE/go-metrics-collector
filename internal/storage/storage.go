@@ -73,3 +73,14 @@ func (s *MemStorage) GetValuesAndClear() []model.Metric {
 
 	return res
 }
+
+func (s *MemStorage) GetMetric(id string) (*model.Metric, error) {
+    s.mutex.RLock()
+    defer s.mutex.RUnlock()
+
+    m, ok := s.metrics[id]
+    if !ok {
+        return nil, errors.New("not found")
+    }
+    return &m, nil
+}
