@@ -3,17 +3,17 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
 type Reporter struct {
 	storage        Storage
 	reportInterval int
-	baseUrl        string
+	baseURL        string
 }
 
 type Storage interface {
@@ -25,7 +25,7 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int) *Rep
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseUrl:        "http://" + reportAddress + "/update/",
+		baseURL:        "http://" + reportAddress + "/update/",
 	}
 }
 
@@ -46,12 +46,12 @@ func (r *Reporter) Report() {
 }
 
 func (r *Reporter) sendMetric(metric model.Metric) error {
-	url := r.baseUrl + metric.MType + "/" + metric.ID + "/"
+	url := r.baseURL + metric.MType + "/" + metric.ID + "/"
 	if metric.MType == model.Counter {
-		url = url + strconv.FormatInt(*metric.Delta, 10)
+		url = url + utils.ConvertCounter(*metric.Delta)
 	}
 	if metric.MType == model.Gauge {
-		url = url + strconv.FormatFloat(*metric.Value, 'f', -1, 64)
+		url = url + utils.ConvertGauge(*metric.Value)
 	}
 	res, err := http.Post(url, "text/plain", nil)
 	if err != nil {

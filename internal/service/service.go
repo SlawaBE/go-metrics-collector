@@ -7,6 +7,7 @@ import (
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
 type MetricsService struct {
@@ -61,9 +62,9 @@ func (m *MetricsService) GetMetric(mType, name string) (string, error) {
 
 	switch mType {
 	case model.Counter:
-		return strconv.FormatInt(*metric.Delta, 10), nil
+		return utils.ConvertCounter(*metric.Delta), nil
 	case model.Gauge:
-		return strconv.FormatFloat(*metric.Value, 'f', -1, 64), nil
+		return utils.ConvertGauge(*metric.Value), nil
 	default:
 		return "", errors.New("unknown metric type")
 	}
@@ -79,9 +80,9 @@ func (m *MetricsService) List() []string {
 	for i, v := range list {
 		switch v.MType {
 		case model.Counter:
-			res[i] = v.ID + ": " + strconv.FormatInt(*v.Delta, 10)
+			res[i] = v.ID + ": " + utils.ConvertCounter(*v.Delta)
 		case model.Gauge:
-			res[i] = v.ID + ": " + strconv.FormatFloat(*v.Value, 'f', -1, 64)
+			res[i] = v.ID + ": " + utils.ConvertGauge(*v.Value)
 		}
 
 	}

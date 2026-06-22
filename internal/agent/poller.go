@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
@@ -28,6 +29,8 @@ func (p *Poller) Run() {
 func (p *Poller) Poll() {
 	metrics := GetRuntimeMetrics().convertToList()
 	for _, m := range metrics {
-	    p.storage.UpdateMetric(m)
+	    if err := p.storage.UpdateMetric(m); err != nil {
+            fmt.Println("error update metric:", m.ID)
+	    }
 	}
 }

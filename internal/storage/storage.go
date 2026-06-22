@@ -19,16 +19,6 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (s *MemStorage) SaveCounter(key string, value int64) error {
-	s.UpdateMetric(model.NewCounterMetric(key, value))
-	return nil
-}
-
-func (s *MemStorage) SaveGauge(key string, value float64) error {
-	s.UpdateMetric(model.NewGaugeMetric(key, value))
-	return nil
-}
-
 func (s *MemStorage) UpdateMetric(metric model.Metric) error {
     s.mutex.Lock()
     defer s.mutex.Unlock()
