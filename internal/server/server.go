@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
+	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -25,9 +26,9 @@ func InitRouter() chi.Router {
 	return r
 }
 
-func Run(address string) {
+func Run(config config.Config) {
 	r := InitRouter()
-	err := http.ListenAndServe(address, r)
+	err := http.ListenAndServe(config.ServerAddress, r)
 	if err != nil {
 		log.Fatal(err)
 	}

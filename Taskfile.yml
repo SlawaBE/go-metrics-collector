@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GREETING: Hello, world!
+  SERVER_BINARY: cmd/server/server.exe
+  AGENT_BINARY: cmd/agent/agent.exe
+
+tasks:
+  clean:
+    desc: Clean
+    cmds:
+      - rm -f {{.SERVER_BINARY}}
+      - rm -f {{.AGENT_BINARY}}
+
+  build-server:
+    desc: Build server
+    cmds:
+      - go build -o {{.SERVER_BINARY}} ./cmd/server/
+
+  build-agent:
+    desc: Build agent
+    cmds:
+      - go build -o {{.AGENT_BINARY}} ./cmd/agent/
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...

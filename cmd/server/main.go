@@ -2,9 +2,10 @@ package main
 
 import (
 	"github.com/SlawaBE/go-metrics-collector/internal/server"
+	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 )
 
 func main() {
-	parseFlags()
-	server.Run(flagRunAddress)
+	conf := config.ReadConfig()
+	server.Run(conf)
 }

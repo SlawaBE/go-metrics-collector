@@ -3,6 +3,7 @@ module github.com/SlawaBE/go-metrics-collector
 go 1.26.4
 
 require (
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/stretchr/testify v1.11.1
