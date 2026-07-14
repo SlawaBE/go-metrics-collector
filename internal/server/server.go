@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
+	"github.com/SlawaBE/go-metrics-collector/internal/middleware"
 	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
@@ -27,8 +29,11 @@ func InitRouter() chi.Router {
 }
 
 func Run(config config.Config) {
+	logger.Initialize("info")
 	r := InitRouter()
-	err := http.ListenAndServe(config.ServerAddress, r)
+	m := middleware.RequestLogger(r)
+
+	err := http.ListenAndServe(config.ServerAddress, m)
 	if err != nil {
 		log.Fatal(err)
 	}
