@@ -14,10 +14,10 @@ import (
 )
 
 func Ptr(m model.Metric) *model.Metric {
-    return &m
+	return &m
 }
 
-func TestGetMetricHandler_ServeHTTP(t *testing.T) {
+func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 	type input struct {
 		method   string
 		pathType string

@@ -20,6 +20,13 @@ func NewMetricsService(s storage.Storage) *MetricsService {
 	}
 }
 
+func (m *MetricsService) UpdateMetricV2(metric model.Metric) error {
+	if metric.ID == "" {
+		return errors.New("empty metric name")
+	}
+	return m.storage.UpdateMetric(metric)
+}
+
 func (m *MetricsService) UpdateMetric(mType, name, value string) error {
 	if name == "" {
 		return errors.New("empty metric name")
@@ -46,8 +53,15 @@ func (m *MetricsService) UpdateMetric(mType, name, value string) error {
 		return errors.New("unknown metric type")
 	}
 
-	m.storage.UpdateMetric(metric)
-	return nil
+	return m.storage.UpdateMetric(metric)
+}
+
+func (m *MetricsService) GetMetricV2(request model.MetricRequest) (*model.Metric, error) {
+	metric, err := m.storage.GetMetric(request.ID)
+	if err != nil || metric.MType != request.MType {
+		return nil, errors.New("not found")
+	}
+	return metric, nil
 }
 
 func (m *MetricsService) GetMetric(mType, name string) (string, error) {

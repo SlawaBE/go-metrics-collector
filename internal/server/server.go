@@ -21,10 +21,18 @@ func InitRouter() chi.Router {
 	updateHandler := handler.NewUpdateMetricHandler(service)
 	getHandler := handler.NewGetMetricHandler(service)
 	listHandler := handler.NewListMetricHandler(service)
+	jsonUpdateHandler := handler.NewJsonUpdateMetricHandler(service)
+	jsonGetMetricHandler := handler.NewJsonGetMetricHandler(service)
 
 	r.Handle("GET /", listHandler)
 	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
 	r.Handle("GET /value/{type}/{name}", getHandler)
+
+	r.Handle("POST /update", jsonUpdateHandler)
+	r.Handle("POST /update/", jsonUpdateHandler)
+	r.Handle("POST /value", jsonGetMetricHandler)
+	r.Handle("POST /value/", jsonGetMetricHandler)
+
 	return r
 }
 

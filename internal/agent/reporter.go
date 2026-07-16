@@ -1,13 +1,14 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
-	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
 type Reporter struct {
@@ -25,7 +26,7 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int) *Rep
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseURL:        "http://" + reportAddress + "/update/",
+		baseURL:        "http://" + reportAddress + "/update",
 	}
 }
 
@@ -46,14 +47,11 @@ func (r *Reporter) Report() {
 }
 
 func (r *Reporter) sendMetric(metric model.Metric) error {
-	url := r.baseURL + metric.MType + "/" + metric.ID + "/"
-	if metric.MType == model.Counter {
-		url = url + utils.ConvertCounter(*metric.Delta)
+	jsonData, err := json.Marshal(metric)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
-	if metric.MType == model.Gauge {
-		url = url + utils.ConvertGauge(*metric.Value)
-	}
-	res, err := http.Post(url, "text/plain", nil)
+	res, err := http.Post(r.baseURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("error sending metric: %v", err)
 	}
