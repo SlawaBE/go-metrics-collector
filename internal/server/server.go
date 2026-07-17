@@ -39,9 +39,10 @@ func InitRouter() chi.Router {
 func Run(config config.Config) {
 	logger.Initialize("info")
 	r := InitRouter()
-	m := middleware.RequestLogger(r)
+	gzipper := middleware.GZip(r)
+	logger := middleware.RequestLogger(gzipper)
 
-	err := http.ListenAndServe(config.ServerAddress, m)
+	err := http.ListenAndServe(config.ServerAddress, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -17,7 +17,7 @@ func NewListMetricHandler(service *service.MetricsService) *ListMetricHandler {
 }
 
 func (h *ListMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Add("Content-Type", "text/html")
 
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)

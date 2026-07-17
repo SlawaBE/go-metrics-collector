@@ -62,8 +62,8 @@ else
 	exit 1
 fi
 
-if echo -n "Increment 5	...	"
-./metricstest.exe -test.v -test.run=^TestIteration5$ \
+echo -n "Increment 5	...	"
+if ./metricstest.exe -test.v -test.run=^TestIteration5$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -75,8 +75,8 @@ else
 	exit 1
 fi
 
-if echo -n "Increment 6	...	"
-./metricstest.exe -test.v -test.run=^TestIteration6$ \
+echo -n "Increment 6	...	"
+if ./metricstest.exe -test.v -test.run=^TestIteration6$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -88,12 +88,25 @@ else
 	exit 1
 fi
 
-if echo -n "Increment 7	...	"
-./metricstest.exe -test.v -test.run=^TestIteration7$ \
+echo -n "Increment 7	...	"
+if ./metricstest.exe -test.v -test.run=^TestIteration7$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter7.log
+then
+	echo "[ OK ]"
+else
+	echo "[FAIL]"
+	exit 1
+fi
+
+echo -n "Increment 8	...	"
+if ./metricstest.exe -test.v -test.run=^TestIteration8$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -server-port=${SERVER_PORT} \
+            -source-path=. &> ${LOG_DIR}/iter8.log
 then
 	echo "[ OK ]"
 else
