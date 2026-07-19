@@ -13,10 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func InitRouter() chi.Router {
-	storage := storage.NewMemStorage()
-	service := service.NewMetricsService(storage)
-
+func InitRouter(service *service.MetricsService) chi.Router {
 	r := chi.NewRouter()
 	updateHandler := handler.NewUpdateMetricHandler(service)
 	getHandler := handler.NewGetMetricHandler(service)
@@ -38,7 +35,17 @@ func InitRouter() chi.Router {
 
 func Run(config config.Config) {
 	logger.Initialize("info")
-	r := InitRouter()
+	storage := storage.NewMemStorage()
+	saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storage)
+	if config.Restore {
+		saver.Load()
+	}
+	if config.StoreInterval > 0 {
+		saver.StartSync()
+	}
+	service := service.NewMetricsService(storage, saver)
+
+	r := InitRouter(service)
 	gzipper := middleware.GZip(r)
 	logger := middleware.RequestLogger(gzipper)
 

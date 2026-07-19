@@ -6,6 +6,7 @@ vars:
   SERVER_BINARY: cmd/server/server.exe
   AGENT_BINARY: cmd/agent/agent.exe
   LOG_DIR: logs
+  TEMP_FILE: tempfile
 
 tasks:
   clean:
@@ -14,6 +15,7 @@ tasks:
       - rm -f {{.SERVER_BINARY}}
       - rm -f {{.AGENT_BINARY}}
       - rm -rf {{.LOG_DIR}}
+      - rm -f {{.TEMP_FILE}}
 
   build-server:
     desc: Build server

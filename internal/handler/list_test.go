@@ -15,7 +15,7 @@ import (
 
 func TestListMetricHandler_ServeHTTP(t *testing.T) {
 	type input struct {
-		method string
+		method  string
 		metrics []model.Metric
 	}
 	type output struct {
@@ -52,7 +52,8 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
-	h := NewListMetricHandler(service.NewMetricsService(stor))
+	saver := service.NewJsonFileMetricSaver(-1, "", stor)
+	h := NewListMetricHandler(service.NewMetricsService(stor, saver))
 
 	r := chi.NewRouter()
 	r.Handle("GET /", h)
@@ -62,8 +63,8 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metrics != nil {
-			    for _, m := range tt.data.metrics {
-				    stor.UpdateMetric(m)
+				for _, m := range tt.data.metrics {
+					stor.UpdateMetric(m)
 				}
 			}
 			url := "/"

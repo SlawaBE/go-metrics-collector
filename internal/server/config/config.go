@@ -7,13 +7,19 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"ADDRESS"`
+	ServerAddress   string `env:"ADDRESS"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func ReadConfig() Config {
 	var config Config
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "address and port to run server")
+	flag.IntVar(&config.StoreInterval, "i", 300, "interval for saving metric to file")
+	flag.StringVar(&config.FileStoragePath, "f", "storage.json", "file for saving metrics")
+	flag.BoolVar(&config.Restore, "r", false, "restore metric from file")
 	flag.Parse()
 
 	err := env.Parse(&config)

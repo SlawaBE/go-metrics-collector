@@ -12,11 +12,13 @@ import (
 
 type MetricsService struct {
 	storage storage.Storage
+	saver   FileMetricSaver
 }
 
-func NewMetricsService(s storage.Storage) *MetricsService {
+func NewMetricsService(s storage.Storage, saver FileMetricSaver) *MetricsService {
 	return &MetricsService{
 		storage: s,
+		saver:   saver,
 	}
 }
 
@@ -24,7 +26,11 @@ func (m *MetricsService) UpdateMetricV2(metric model.Metric) error {
 	if metric.ID == "" {
 		return errors.New("empty metric name")
 	}
-	return m.storage.UpdateMetric(metric)
+	err := m.storage.UpdateMetric(metric)
+	if err == nil {
+		m.saver.SaveSync()
+	}
+	return err
 }
 
 func (m *MetricsService) UpdateMetric(mType, name, value string) error {
@@ -52,8 +58,11 @@ func (m *MetricsService) UpdateMetric(mType, name, value string) error {
 	default:
 		return errors.New("unknown metric type")
 	}
-
-	return m.storage.UpdateMetric(metric)
+	err := m.storage.UpdateMetric(metric)
+	if err == nil {
+		m.saver.SaveSync()
+	}
+	return err
 }
 
 func (m *MetricsService) GetMetricV2(request model.MetricRequest) (*model.Metric, error) {

@@ -1,0 +1,74 @@
+package service
+
+import (
+	"encoding/json"
+	"os"
+	"time"
+
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
+	"github.com/SlawaBE/go-metrics-collector/internal/model"
+	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"go.uber.org/zap"
+)
+
+type JsonFileMetricSaver struct {
+	interval int
+	fileName string
+	storage  storage.Storage
+}
+
+func NewJsonFileMetricSaver(interval int, fileName string, storage storage.Storage) *JsonFileMetricSaver {
+	return &JsonFileMetricSaver{
+		interval: interval,
+		fileName: fileName,
+		storage:  storage,
+	}
+}
+
+func (m *JsonFileMetricSaver) Load() error {
+	data, err := os.ReadFile(m.fileName)
+	if err != nil {
+		logger.Log.Error("Error loading metrics", zap.Error(err))
+		return err
+	}
+	var metrics []model.Metric
+	err = json.Unmarshal(data, &metrics)
+	if err != nil {
+		logger.Log.Error("Error loading metrics", zap.Error(err))
+		return err
+	}
+	m.storage.UpdateAll(metrics)
+	return nil
+}
+
+func (m *JsonFileMetricSaver) save() error {
+	data, err := json.Marshal(m.storage.GetValues())
+	if err != nil {
+		logger.Log.Error("Error saving metrics", zap.Error(err))
+		return err
+	}
+	return os.WriteFile(m.fileName, data, 0644)
+}
+
+func (m *JsonFileMetricSaver) SaveSync() error {
+	if m.interval == 0 {
+		return m.save()
+	}
+	return nil
+}
+
+func (m *JsonFileMetricSaver) StartSync() {
+	if m.interval <= 0 {
+		return
+	}
+
+	go func() {
+		for {
+			time.Sleep(time.Duration(m.interval) * time.Second)
+			err := m.save()
+			if err != nil {
+				logger.Log.Error("Error loading metrics", zap.Error(err))
+			}
+		}
+	}()
+}

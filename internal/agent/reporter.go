@@ -53,7 +53,7 @@ func (r *Reporter) Report() {
 func (r *Reporter) sendMetric(metric model.Metric) error {
 	jsonData, err := json.Marshal(metric)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 
 	data, err := r.compressor.Compress(jsonData)
