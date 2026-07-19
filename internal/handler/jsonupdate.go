@@ -46,7 +46,7 @@ func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err := h.service.UpdateMetricV2(metric)
+	err := h.service.UpdateMetric(metric)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

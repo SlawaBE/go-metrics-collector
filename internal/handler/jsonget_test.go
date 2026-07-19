@@ -64,7 +64,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				method: http.MethodPost,
 				mType:  "counter",
 				id:     "name",
-				metric: Ptr(model.NewCounterMetric("name", 1)),
+				metric: utils.Ptr(model.NewCounterMetric("name", 1)),
 				json:   "{\"id\":\"name\",\"type\":\"counter\"}",
 			},
 			want: output{
@@ -78,7 +78,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				method: http.MethodPost,
 				mType:  "gauge",
 				id:     "name",
-				metric: Ptr(model.NewGaugeMetric("name", 1.1)),
+				metric: utils.Ptr(model.NewGaugeMetric("name", 1.1)),
 				json:   "{\"id\":\"name\",\"type\":\"gauge\"}",
 			},
 			want: output{

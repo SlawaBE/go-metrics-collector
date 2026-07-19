@@ -8,14 +8,11 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
-
-func Ptr(m model.Metric) *model.Metric {
-	return &m
-}
 
 func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 	type input struct {
@@ -63,7 +60,7 @@ func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 				method:   http.MethodGet,
 				pathType: "counter",
 				pathName: "name",
-				metric:   Ptr(model.NewCounterMetric("name", 1)),
+				metric:   utils.Ptr(model.NewCounterMetric("name", 1)),
 			},
 			want: output{
 				statusCode: 200,
@@ -76,7 +73,7 @@ func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 				method:   http.MethodGet,
 				pathType: "gauge",
 				pathName: "name",
-				metric:   Ptr(model.NewGaugeMetric("name", 1.1)),
+				metric:   utils.Ptr(model.NewGaugeMetric("name", 1.1)),
 			},
 			want: output{
 				statusCode: 200,

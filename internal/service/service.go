@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"sort"
-	"strconv"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
@@ -22,7 +21,7 @@ func NewMetricsService(s storage.Storage, saver FileMetricSaver) *MetricsService
 	}
 }
 
-func (m *MetricsService) UpdateMetricV2(metric model.Metric) error {
+func (m *MetricsService) UpdateMetric(metric model.Metric) error {
 	if metric.ID == "" {
 		return errors.New("empty metric name")
 	}
@@ -33,64 +32,12 @@ func (m *MetricsService) UpdateMetricV2(metric model.Metric) error {
 	return err
 }
 
-func (m *MetricsService) UpdateMetric(mType, name, value string) error {
-	if name == "" {
-		return errors.New("empty metric name")
-	}
-
-	var metric model.Metric
-
-	switch mType {
-	case model.Counter:
-		intValue, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return errors.New("invalid value")
-		}
-		metric = model.NewCounterMetric(name, intValue)
-
-	case model.Gauge:
-		floatValue, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return errors.New("invalid value")
-		}
-		metric = model.NewGaugeMetric(name, floatValue)
-
-	default:
-		return errors.New("unknown metric type")
-	}
-	err := m.storage.UpdateMetric(metric)
-	if err == nil {
-		m.saver.SaveSync()
-	}
-	return err
-}
-
-func (m *MetricsService) GetMetricV2(request model.MetricRequest) (*model.Metric, error) {
+func (m *MetricsService) GetMetric(request model.MetricRequest) (*model.Metric, error) {
 	metric, err := m.storage.GetMetric(request.ID)
 	if err != nil || metric.MType != request.MType {
 		return nil, errors.New("not found")
 	}
 	return metric, nil
-}
-
-func (m *MetricsService) GetMetric(mType, name string) (string, error) {
-	if name == "" {
-		return "", errors.New("empty metric name")
-	}
-
-	metric, err := m.storage.GetMetric(name)
-	if err != nil || metric.MType != mType {
-		return "", errors.New("not found")
-	}
-
-	switch mType {
-	case model.Counter:
-		return utils.ConvertCounter(*metric.Delta), nil
-	case model.Gauge:
-		return utils.ConvertGauge(*metric.Value), nil
-	default:
-		return "", errors.New("unknown metric type")
-	}
 }
 
 func (m *MetricsService) List() []string {
