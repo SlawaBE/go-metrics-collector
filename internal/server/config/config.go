@@ -13,7 +13,7 @@ type Config struct {
 	Restore         bool   `env:"RESTORE"`
 }
 
-func ReadConfig() Config {
+func ReadConfig() (Config, error) {
 	var config Config
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "address and port to run server")
@@ -24,8 +24,8 @@ func ReadConfig() Config {
 
 	err := env.Parse(&config)
 	if err != nil {
-		panic(err)
+		return config, err
 	}
 
-	return config
+	return config, nil
 }

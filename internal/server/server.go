@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -40,9 +41,12 @@ func Run(config config.Config) {
 	if config.Restore {
 		saver.Load()
 	}
-	if config.StoreInterval > 0 {
-		saver.StartSync()
-	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	saver.StartSync(ctx)
+	defer cancel()
+	//TODO разобраться с Graceful Shutdown иначе это смысла не имеет
+
 	service := service.NewMetricsService(storage, saver)
 
 	r := InitRouter(service)

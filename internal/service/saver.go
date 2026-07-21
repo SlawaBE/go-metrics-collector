@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"time"
@@ -57,17 +58,27 @@ func (m *JsonFileMetricSaver) SaveSync() error {
 	return nil
 }
 
-func (m *JsonFileMetricSaver) StartSync() {
+func (m *JsonFileMetricSaver) StartSync(ctx context.Context) {
 	if m.interval <= 0 {
 		return
 	}
+	ticker := time.NewTicker(time.Duration(m.interval) * time.Second)
 
 	go func() {
+		logger.Log.Info("Start sync")
 		for {
-			time.Sleep(time.Duration(m.interval) * time.Second)
-			err := m.save()
-			if err != nil {
-				logger.Log.Error("Error loading metrics", zap.Error(err))
+			select {
+			case <-ctx.Done():
+				logger.Log.Info("Stop sync")
+				ticker.Stop()
+				return
+
+			case <-ticker.C:
+				logger.Log.Info("Save metrics")
+				err := m.save()
+				if err != nil {
+					logger.Log.Error("Error saving metrics", zap.Error(err))
+				}
 			}
 		}
 	}()

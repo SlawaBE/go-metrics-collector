@@ -17,7 +17,6 @@ type Reporter struct {
 	storage        Storage
 	reportInterval int
 	baseURL        string
-	compressor     *gzip.Compressor
 }
 
 type Storage interface {
@@ -30,7 +29,6 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int) *Rep
 		storage:        storage,
 		reportInterval: reportInterval,
 		baseURL:        "http://" + reportAddress + "/update",
-		compressor:     gzip.NewCompressor(),
 	}
 }
 
@@ -56,7 +54,7 @@ func (r *Reporter) sendMetric(metric model.Metric) error {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 
-	data, err := r.compressor.Compress(jsonData)
+	data, err := gzip.Compress(jsonData)
 	if err != nil {
 		return fmt.Errorf("error compress metric: %v", err)
 	}

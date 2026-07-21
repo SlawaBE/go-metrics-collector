@@ -12,7 +12,7 @@ type Config struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 }
 
-func ReadConfig() Config {
+func ReadConfig() (Config, error) {
 	var config Config
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "address and port of metric server")
@@ -23,8 +23,8 @@ func ReadConfig() Config {
 
 	err := env.Parse(&config)
 	if err != nil {
-		panic(err)
+		return config, err
 	}
 
-	return config
+	return config, nil
 }

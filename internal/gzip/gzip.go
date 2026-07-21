@@ -67,19 +67,9 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-type Compressor struct {
-	buffer *bytes.Buffer
-}
-
-func NewCompressor() *Compressor {
-	return &Compressor{
-		buffer: new(bytes.Buffer),
-	}
-}
-
-func (c *Compressor) Compress(data []byte) ([]byte, error) {
-	c.buffer.Reset()
-	w := gzip.NewWriter(c.buffer)
+func Compress(data []byte) ([]byte, error) {
+	buffer := new(bytes.Buffer)
+	w := gzip.NewWriter(buffer)
 
 	_, err := w.Write(data)
 	if err != nil {
@@ -90,5 +80,5 @@ func (c *Compressor) Compress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed compress data: %v", err)
 	}
-	return c.buffer.Bytes(), nil
+	return buffer.Bytes(), nil
 }
