@@ -1,8 +1,18 @@
 package main
 
-import "github.com/SlawaBE/go-metrics-collector/internal/agent"
+import (
+	"fmt"
+	"os"
+
+	"github.com/SlawaBE/go-metrics-collector/internal/agent"
+	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
+)
 
 func main() {
-	parseFlags()
-	agent.Run(flagRunAddress, flagPollInterval, flagReportInterval)
+	conf, err := config.ReadConfig()
+	if err != nil {
+		fmt.Println("Error reading configuration")
+		os.Exit(1)
+	}
+	agent.Run(conf)
 }

@@ -1,11 +1,14 @@
 package agent
 
-import "github.com/SlawaBE/go-metrics-collector/internal/storage"
+import (
+	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
+	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+)
 
-func Run(address string, pollInterval int, reportInterval int) {
+func Run(config config.Config) {
 	storage := storage.NewMemStorage()
-	poller := NewPoller(storage, pollInterval)
-	reporter := NewReporter(storage, address, reportInterval)
+	poller := NewPoller(storage, config.PollInterval)
+	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval)
 
 	go poller.Run()
 	reporter.Run()

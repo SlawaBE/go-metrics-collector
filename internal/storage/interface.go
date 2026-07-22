@@ -6,4 +6,5 @@ type Storage interface {
 	UpdateMetric(metric model.Metric) error
 	GetValues() []model.Metric
 	GetMetric(id string) (*model.Metric, error)
+	UpdateAll(metrics []model.Metric)
 }

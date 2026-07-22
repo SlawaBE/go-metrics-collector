@@ -1,13 +1,16 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
-	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
 type Reporter struct {
@@ -25,7 +28,7 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int) *Rep
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseURL:        "http://" + reportAddress + "/update/",
+		baseURL:        "http://" + reportAddress + "/update",
 	}
 }
 
@@ -46,20 +49,40 @@ func (r *Reporter) Report() {
 }
 
 func (r *Reporter) sendMetric(metric model.Metric) error {
-	url := r.baseURL + metric.MType + "/" + metric.ID + "/"
-	if metric.MType == model.Counter {
-		url = url + utils.ConvertCounter(*metric.Delta)
+	jsonData, err := json.Marshal(metric)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
-	if metric.MType == model.Gauge {
-		url = url + utils.ConvertGauge(*metric.Value)
+
+	data, err := gzip.Compress(jsonData)
+	if err != nil {
+		return fmt.Errorf("error compress metric: %v", err)
 	}
-	res, err := http.Post(url, "text/plain", nil)
+
+	req, err := http.NewRequest("POST", r.baseURL, bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("error creating request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error sending metric: %v", err)
 	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("error in server response: %v", err)
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("error in server response: %d %s", res.StatusCode, string(body))
 	}
-	res.Body.Close()
+
+	_, err = io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	return nil
 }

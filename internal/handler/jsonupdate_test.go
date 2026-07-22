@@ -12,12 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
+func TestJsonUpdateMetricHandler_ServeHTTP(t *testing.T) {
 	type input struct {
-		method    string
-		pathType  string
-		pathName  string
-		pathValue string
+		method string
+		json   string
 	}
 	type output struct {
 		statusCode int
@@ -30,10 +28,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Unknown metric type",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "unknown",
-				pathName:  "name",
-				pathValue: "1",
+				method: http.MethodPost,
+				json:   "{\"id\":\"name\",\"type\":\"unknown\",\"value\":1.1}",
 			},
 			want: output{
 				statusCode: 400,
@@ -42,10 +38,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Invalid counter metric value",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "counter",
-				pathName:  "name",
-				pathValue: "a",
+				method: http.MethodPost,
+				json:   "{\"id\":\"name\",\"type\":\"counter\",\"value\":\"a\"}",
 			},
 			want: output{
 				statusCode: 400,
@@ -54,10 +48,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Invalid gauge metric value",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "gauge",
-				pathName:  "name",
-				pathValue: "b",
+				method: http.MethodPost,
+				json:   "{\"id\":\"name\",\"type\":\"gauge\",\"value\":\"b\"}",
 			},
 			want: output{
 				statusCode: 400,
@@ -66,10 +58,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Invalid method",
 			data: input{
-				method:    http.MethodPut,
-				pathType:  "gauge",
-				pathName:  "name",
-				pathValue: "1.0",
+				method: http.MethodPut,
+				json:   "{\"id\":\"name\",\"type\":\"gauge\",\"value\":1.1}",
 			},
 			want: output{
 				statusCode: 405,
@@ -78,10 +68,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Success counter metric update",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "counter",
-				pathName:  "name",
-				pathValue: "1",
+				method: http.MethodPost,
+				json:   "{\"id\":\"name\",\"type\":\"counter\",\"delta\":1}",
 			},
 			want: output{
 				statusCode: 200,
@@ -90,22 +78,28 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Success gauge metric update",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "gauge",
-				pathName:  "name",
-				pathValue: "1.0",
+				method: http.MethodPost,
+				json:   "{\"id\":\"name\",\"type\":\"gauge\",\"value\":1.1}",
 			},
 			want: output{
 				statusCode: 200,
 			},
 		},
 		{
-			name: "Update counter metric without name",
+			name: "Update counter metric without name (is \"\")",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "counter",
-				pathName:  "",
-				pathValue: "1",
+				method: http.MethodPost,
+				json:   "{\"id\":\"\",\"type\":\"counter\",\"delta\":1}",
+			},
+			want: output{
+				statusCode: 404,
+			},
+		},
+		{
+			name: "Update counter metric without name (is null)",
+			data: input{
+				method: http.MethodPost,
+				json:   "{\"type\":\"counter\",\"delta\":1}",
 			},
 			want: output{
 				statusCode: 404,
@@ -114,33 +108,44 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		{
 			name: "Update gauge metric without name",
 			data: input{
-				method:    http.MethodPost,
-				pathType:  "gauge",
-				pathName:  "",
-				pathValue: "1.0",
+				method: http.MethodPost,
+				json:   "{\"id\":\"\",\"type\":\"unknown\",\"value\":1.1}",
+			},
+			want: output{
+				statusCode: 404,
+			},
+		},
+		{
+			name: "Update gauge metric without name (is null)",
+			data: input{
+				method: http.MethodPost,
+				json:   "{\"type\":\"gauge\",\"value\":1.1}",
 			},
 			want: output{
 				statusCode: 404,
 			},
 		},
 	}
+
 	stor := storage.NewMemStorage()
 	saver := service.NewJsonFileMetricSaver(-1, "", stor)
 	service := service.NewMetricsService(stor, saver)
-	handler := NewUpdateMetricHandler(service)
+	handler := NewJsonUpdateMetricHandler(service)
 
 	r := chi.NewRouter()
-	r.Handle("POST /update/{type}/{name}/{value}", handler)
+	r.Handle("POST /update", handler)
 	srv := httptest.NewServer(r)
 	defer srv.Close()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := "/update/" + tt.data.pathType + "/" + tt.data.pathName + "/" + tt.data.pathValue
+			url := "/update"
 
 			req := resty.New().R()
 			req.Method = tt.data.method
 			req.URL = srv.URL + url
+			req.Header.Add("Content-Type", "application/json")
+			req.Body = tt.data.json
 
 			resp, err := req.Send()
 			assert.NoError(t, err, "error making HTTP request")

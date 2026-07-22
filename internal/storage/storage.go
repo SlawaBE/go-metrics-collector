@@ -8,21 +8,34 @@ import (
 )
 
 type MemStorage struct {
-	mutex      sync.RWMutex
+	mutex   sync.RWMutex
 	metrics map[string]model.Metric
 }
 
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-	    mutex: sync.RWMutex{},
+		mutex:   sync.RWMutex{},
 		metrics: make(map[string]model.Metric),
 	}
 }
 
 func (s *MemStorage) UpdateMetric(metric model.Metric) error {
-    s.mutex.Lock()
-    defer s.mutex.Unlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
+	return s.update(metric)
+}
+
+func (s *MemStorage) UpdateAll(metrics []model.Metric) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, m := range metrics {
+		s.update(m)
+	}
+}
+
+func (s *MemStorage) update(metric model.Metric) error {
 	switch metric.MType {
 	case model.Counter:
 		if v, ok := s.metrics[metric.ID]; ok {
@@ -59,18 +72,18 @@ func (s *MemStorage) GetValuesAndClear() []model.Metric {
 	for k := range s.metrics {
 		res = append(res, s.metrics[k])
 	}
-    s.metrics = make(map[string]model.Metric)
+	s.metrics = make(map[string]model.Metric)
 
 	return res
 }
 
 func (s *MemStorage) GetMetric(id string) (*model.Metric, error) {
-    s.mutex.RLock()
-    defer s.mutex.RUnlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 
-    m, ok := s.metrics[id]
-    if !ok {
-        return nil, errors.New("not found")
-    }
-    return &m, nil
+	m, ok := s.metrics[id]
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	return &m, nil
 }

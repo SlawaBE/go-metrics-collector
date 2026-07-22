@@ -40,8 +40,13 @@ func (m *Metric) String() string {
 	if m.MType == Counter {
 		return fmt.Sprintf("Counter: %s %d", m.ID, *m.Delta)
 	}
-    if m.MType == Gauge {
-        return fmt.Sprintf("Gauge: %s %f", m.ID, *m.Value)
-    }
-    return ""
+	if m.MType == Gauge {
+		return fmt.Sprintf("Gauge: %s %f", m.ID, *m.Value)
+	}
+	return ""
+}
+
+type MetricRequest struct {
+	ID    string `json:"id"`
+	MType string `json:"type"`
 }
