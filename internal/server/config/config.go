@@ -11,6 +11,7 @@ type Config struct {
 	StoreInterval   int    `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func ReadConfig() (Config, error) {
@@ -20,6 +21,7 @@ func ReadConfig() (Config, error) {
 	flag.IntVar(&config.StoreInterval, "i", 300, "interval for saving metric to file")
 	flag.StringVar(&config.FileStoragePath, "f", "storage.json", "file for saving metrics")
 	flag.BoolVar(&config.Restore, "r", false, "restore metric from file")
+	flag.StringVar(&config.DatabaseDSN, "d", "", "database url")
 	flag.Parse()
 
 	err := env.Parse(&config)

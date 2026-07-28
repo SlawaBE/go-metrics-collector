@@ -2,9 +2,13 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/db"
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/middleware"
@@ -12,9 +16,10 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
-func InitRouter(service *service.MetricsService) chi.Router {
+func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
 	r := chi.NewRouter()
 	updateHandler := handler.NewUpdateMetricHandler(service)
 	getHandler := handler.NewGetMetricHandler(service)
@@ -31,11 +36,32 @@ func InitRouter(service *service.MetricsService) chi.Router {
 	r.Handle("POST /value", jsonGetMetricHandler)
 	r.Handle("POST /value/", jsonGetMetricHandler)
 
+	r.Handle("GET /ping", handler.NewPingHandler(database))
+
 	return r
 }
 
 func Run(config config.Config) {
 	logger.Initialize("info")
+
+	var database *sql.DB = nil
+	if config.DatabaseDSN != "" {
+		var err error
+		database, err = db.NewDB(config.DatabaseDSN)
+		if err != nil {
+			os.Exit(2)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err = database.PingContext(ctx)
+		if err != nil {
+			logger.Log.Fatal("Error ping database", zap.Error(err))
+			os.Exit(3)
+		}
+		defer database.Close()
+	}
+
 	storage := storage.NewMemStorage()
 	saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storage)
 	if config.Restore {
@@ -49,7 +75,7 @@ func Run(config config.Config) {
 
 	service := service.NewMetricsService(storage, saver)
 
-	r := InitRouter(service)
+	r := InitRouter(service, database)
 	gzipper := middleware.GZip(r)
 	logger := middleware.RequestLogger(gzipper)
 

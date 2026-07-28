@@ -16,6 +16,11 @@ if [ ! -d $LOG_DIR ] ; then
     exit 1
 fi
 
+if [ -z ${DATABASE_URL} ] ; then
+    echo 'Need `export DATABASE_URL=your_db_url`'
+    exit 1
+fi
+
 echo -n "Increment 1	...	"
 if ./metricstest.exe -test.v -test.run=^TestIteration1$ \
             -binary-path=${SERVER_BINARY} &> ${LOG_DIR}/iter1.log
@@ -121,6 +126,20 @@ if ./metricstest -test.v -test.run=^TestIteration9$ \
             -file-storage-path=${TEMP_FILE} \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter9.log
+then
+	echo "[ OK ]"
+else
+	echo "[FAIL]"
+	exit 1
+fi
+
+echo -n "Increment 10   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration10[AB]$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter10.log
 then
 	echo "[ OK ]"
 else
