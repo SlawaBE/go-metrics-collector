@@ -46,7 +46,7 @@ func (h *JsonGetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	m, err := h.service.GetMetric(request)
+	m, err := h.service.GetMetric(r.Context(), request)
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)

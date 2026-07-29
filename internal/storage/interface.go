@@ -1,10 +1,14 @@
 package storage
 
-import "github.com/SlawaBE/go-metrics-collector/internal/model"
+import (
+	"context"
+
+	"github.com/SlawaBE/go-metrics-collector/internal/model"
+)
 
 type Storage interface {
-	UpdateMetric(metric model.Metric) error
-	GetValues() []model.Metric
-	GetMetric(id string) (*model.Metric, error)
-	UpdateAll(metrics []model.Metric)
+	UpdateMetric(ctx context.Context, metric model.Metric) error
+	GetValues(ctx context.Context, ) ([]model.Metric, error)
+	GetMetric(ctx context.Context, id string) (*model.Metric, error)
+	UpdateAll(metrics []model.Metric) error
 }

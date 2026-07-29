@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"sort"
 
@@ -21,27 +22,30 @@ func NewMetricsService(s storage.Storage, saver FileMetricSaver) *MetricsService
 	}
 }
 
-func (m *MetricsService) UpdateMetric(metric model.Metric) error {
+func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) error {
 	if metric.ID == "" {
 		return errors.New("empty metric name")
 	}
-	err := m.storage.UpdateMetric(metric)
-	if err == nil {
+	err := m.storage.UpdateMetric(ctx, metric)
+	if err == nil && m.saver != nil {
 		m.saver.SaveSync()
 	}
 	return err
 }
 
-func (m *MetricsService) GetMetric(request model.MetricRequest) (*model.Metric, error) {
-	metric, err := m.storage.GetMetric(request.ID)
+func (m *MetricsService) GetMetric(ctx context.Context, request model.MetricRequest) (*model.Metric, error) {
+	metric, err := m.storage.GetMetric(ctx, request.ID)
 	if err != nil || metric.MType != request.MType {
 		return nil, errors.New("not found")
 	}
 	return metric, nil
 }
 
-func (m *MetricsService) List() []string {
-	list := m.storage.GetValues()
+func (m *MetricsService) List(ctx context.Context, ) ([]string, error) {
+	list, err := m.storage.GetValues(ctx, )
+	if err != nil {
+		return nil, err
+	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].ID < list[j].ID
 	})
@@ -57,5 +61,5 @@ func (m *MetricsService) List() []string {
 
 	}
 
-	return res
+	return res, nil
 }

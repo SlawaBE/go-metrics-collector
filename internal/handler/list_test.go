@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,7 +65,7 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metrics != nil {
 				for _, m := range tt.data.metrics {
-					stor.UpdateMetric(m)
+					stor.UpdateMetric(context.Background(), m)
 				}
 			}
 			url := "/"

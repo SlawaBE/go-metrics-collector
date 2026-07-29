@@ -44,7 +44,8 @@ func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
 func Run(config config.Config) {
 	logger.Initialize("info")
 
-	var database *sql.DB = nil
+	var database *sql.DB
+	var metricsService *service.MetricsService
 	if config.DatabaseDSN != "" {
 		var err error
 		database, err = db.NewDB(config.DatabaseDSN)
@@ -59,23 +60,30 @@ func Run(config config.Config) {
 			logger.Log.Fatal("Error ping database", zap.Error(err))
 			os.Exit(3)
 		}
+
+		err = db.RunMigrations(database, config.DatabaseDSN)
+		if err != nil {
+			logger.Log.Fatal("Error migration", zap.Error(err))
+			os.Exit(4)
+		}
 		defer database.Close()
-	}
+		storage := storage.NewDBStorage(database)
+		metricsService = service.NewMetricsService(storage, nil)
+	} else {
+		storage := storage.NewMemStorage()
+		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storage)
+		if config.Restore {
+			saver.Load()
+		}
 
-	storage := storage.NewMemStorage()
-	saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storage)
-	if config.Restore {
-		saver.Load()
+		ctx, cancel := context.WithCancel(context.Background())
+		saver.StartSync(ctx)
+		defer cancel()
+		metricsService = service.NewMetricsService(storage, saver)
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	saver.StartSync(ctx)
-	defer cancel()
 	//TODO разобраться с Graceful Shutdown иначе это смысла не имеет
 
-	service := service.NewMetricsService(storage, saver)
-
-	r := InitRouter(service, database)
+	r := InitRouter(metricsService, database)
 	gzipper := middleware.GZip(r)
 	logger := middleware.RequestLogger(gzipper)
 

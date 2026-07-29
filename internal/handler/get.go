@@ -34,7 +34,7 @@ func (h *GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := h.service.GetMetric(model.MetricRequest{MType: metricType, ID: metricName})
+	m, err := h.service.GetMetric(r.Context(), model.MetricRequest{MType: metricType, ID: metricName})
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)

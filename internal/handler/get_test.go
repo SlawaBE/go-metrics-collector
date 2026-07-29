@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -117,7 +118,7 @@ func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metric != nil {
-				stor.UpdateMetric(*tt.data.metric)
+				stor.UpdateMetric(context.Background(), *tt.data.metric)
 			}
 			url := "/value/" + tt.data.pathType + "/" + tt.data.pathName
 

@@ -146,3 +146,17 @@ else
 	echo "[FAIL]"
 	exit 1
 fi
+
+echo -n "Increment 11   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration11$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter11.log
+then
+	echo "[ OK ]"
+else
+	echo "[FAIL]"
+	exit 1
+fi
