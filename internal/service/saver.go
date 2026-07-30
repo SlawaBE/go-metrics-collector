@@ -38,7 +38,7 @@ func (m *JsonFileMetricSaver) Load() error {
 		logger.Log.Error("Error loading metrics", zap.Error(err))
 		return err
 	}
-	err = m.storage.UpdateAll(metrics)
+	err = m.storage.UpdateAll(context.Background(), metrics)
 	if err != nil {
 		logger.Log.Error("Error updating metrics in storage", zap.Error(err))
 		return err

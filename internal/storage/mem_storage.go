@@ -27,7 +27,7 @@ func (s *MemStorage) UpdateMetric(ctx context.Context, metric model.Metric) erro
 	return s.update(metric)
 }
 
-func (s *MemStorage) UpdateAll(metrics []model.Metric) error {
+func (s *MemStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

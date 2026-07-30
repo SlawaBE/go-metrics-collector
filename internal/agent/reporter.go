@@ -28,7 +28,7 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int) *Rep
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseURL:        "http://" + reportAddress + "/update",
+		baseURL:        "http://" + reportAddress + "/updates/",
 	}
 }
 
@@ -41,22 +41,23 @@ func (r *Reporter) Run() {
 
 func (r *Reporter) Report() {
 	metrics := r.storage.GetValuesAndClear()
-	for _, m := range metrics {
-		if err := r.sendMetric(m); err != nil {
-			fmt.Println("Error sending metric:", m.ID)
-		}
+	if len(metrics) == 0 {
+		return
+	}
+	if err := r.sendMetrics(metrics); err != nil {
+		fmt.Println("Error sending metrics:")
 	}
 }
 
-func (r *Reporter) sendMetric(metric model.Metric) error {
-	jsonData, err := json.Marshal(metric)
+func (r *Reporter) sendMetrics(metrics []model.Metric) error {
+	jsonData, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 
 	data, err := gzip.Compress(jsonData)
 	if err != nil {
-		return fmt.Errorf("error compress metric: %v", err)
+		return fmt.Errorf("error compress metrics: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", r.baseURL, bytes.NewBuffer(data))
@@ -71,7 +72,7 @@ func (r *Reporter) sendMetric(metric model.Metric) error {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error sending metric: %v", err)
+		return fmt.Errorf("error sending metrics: %v", err)
 	}
 	defer res.Body.Close()
 

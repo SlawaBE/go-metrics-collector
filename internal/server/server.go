@@ -26,6 +26,7 @@ func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
 	listHandler := handler.NewListMetricHandler(service)
 	jsonUpdateHandler := handler.NewJsonUpdateMetricHandler(service)
 	jsonGetMetricHandler := handler.NewJsonGetMetricHandler(service)
+	jsonBatchUpdatesHandler := handler.NewJsonBatchUpdateMetricsHandler(service)
 
 	r.Handle("GET /", listHandler)
 	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
@@ -37,6 +38,9 @@ func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
 	r.Handle("POST /value/", jsonGetMetricHandler)
 
 	r.Handle("GET /ping", handler.NewPingHandler(database))
+
+	r.Handle("POST /updates", jsonBatchUpdatesHandler)
+	r.Handle("POST /updates/", jsonBatchUpdatesHandler)
 
 	return r
 }

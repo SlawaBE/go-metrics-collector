@@ -33,6 +33,14 @@ func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) 
 	return err
 }
 
+func (m *MetricsService) UpdateMetrics(ctx context.Context, metrics []model.Metric) error {
+	err := m.storage.UpdateAll(ctx, metrics)
+	if err == nil && m.saver != nil {
+		m.saver.SaveSync()
+	}
+	return err
+}
+
 func (m *MetricsService) GetMetric(ctx context.Context, request model.MetricRequest) (*model.Metric, error) {
 	metric, err := m.storage.GetMetric(ctx, request.ID)
 	if err != nil || metric.MType != request.MType {
@@ -41,8 +49,8 @@ func (m *MetricsService) GetMetric(ctx context.Context, request model.MetricRequ
 	return metric, nil
 }
 
-func (m *MetricsService) List(ctx context.Context, ) ([]string, error) {
-	list, err := m.storage.GetValues(ctx, )
+func (m *MetricsService) List(ctx context.Context) ([]string, error) {
+	list, err := m.storage.GetValues(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -10,5 +10,5 @@ type Storage interface {
 	UpdateMetric(ctx context.Context, metric model.Metric) error
 	GetValues(ctx context.Context, ) ([]model.Metric, error)
 	GetMetric(ctx context.Context, id string) (*model.Metric, error)
-	UpdateAll(metrics []model.Metric) error
+	UpdateAll(ctx context.Context, metrics []model.Metric) error
 }
