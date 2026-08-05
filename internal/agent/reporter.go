@@ -1,22 +1,21 @@
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/go-resty/resty/v2"
 )
 
 type Reporter struct {
 	storage        Storage
 	reportInterval int
-	baseURL        string
+	client         *resty.Client
 }
 
 type Storage interface {
@@ -24,11 +23,13 @@ type Storage interface {
 	GetValuesAndClear() []model.Metric
 }
 
+var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+
 func NewReporter(storage Storage, reportAddress string, reportInterval int) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
-		baseURL:        "http://" + reportAddress + "/updates/",
+		client:         httpClient("http://" + reportAddress),
 	}
 }
 
@@ -45,7 +46,7 @@ func (r *Reporter) Report() {
 		return
 	}
 	if err := r.sendMetrics(metrics); err != nil {
-		fmt.Println("Error sending metrics:")
+		fmt.Println("Error sending metrics:", err)
 	}
 }
 
@@ -60,30 +61,31 @@ func (r *Reporter) sendMetrics(metrics []model.Metric) error {
 		return fmt.Errorf("error compress metrics: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", r.baseURL, bytes.NewBuffer(data))
-	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
-	}
+	res, err := r.client.R().
+		SetBody(data).
+		Post("/updates")
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Accept-Encoding", "gzip")
-
-	client := &http.Client{}
-	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error sending metrics: %v", err)
 	}
-	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(res.Body)
-		return fmt.Errorf("error in server response: %d %s", res.StatusCode, string(body))
+	if res.StatusCode() != http.StatusOK {
+		return fmt.Errorf("error in server response: %d", res.StatusCode())
 	}
 
-	_, err = io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
 	return nil
+}
+
+func httpClient(baseUrl string) *resty.Client {
+	client := resty.New().
+		SetBaseURL(baseUrl).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip").
+		SetHeader("Accept-Encoding", "gzip").
+		SetRetryCount(len(retryIntervals)).
+		SetRetryAfter(func(c *resty.Client, r *resty.Response) (time.Duration, error) {
+			return retryIntervals[r.Request.Attempt-1], nil
+		}).
+		SetRetryMaxWaitTime(retryIntervals[len(retryIntervals)-1])
+	return client
 }

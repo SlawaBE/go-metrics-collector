@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"net/http"
 	"time"
+
+	"github.com/SlawaBE/go-metrics-collector/internal/retry"
 )
 
 type PingHandler struct {
@@ -23,8 +25,12 @@ func (h *PingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	if err := h.db.PingContext(ctx); err != nil {
+	err := retry.RetryWithBackoff(ctx, func() error {
+		return h.db.PingContext(ctx)
+	})
+	if err != nil {
 		http.Error(w, "No connect to database", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)

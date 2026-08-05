@@ -174,3 +174,17 @@ else
 	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
+
+echo -n "Increment 13   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration13$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter13.log
+then
+	echo -e "[ \033[32mOK\033[0m ]"
+else
+	echo -e "[\033[31FAIL\033[0m]"
+	exit 1
+fi
