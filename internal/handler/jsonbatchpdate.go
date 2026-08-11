@@ -10,17 +10,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonGetMetricHandler struct {
+type JsonBatchUpdateMetricsHandler struct {
 	service *service.MetricsService
 }
 
-func NewJsonGetMetricHandler(service *service.MetricsService) *JsonGetMetricHandler {
-	return &JsonGetMetricHandler{
+func NewJsonBatchUpdateMetricsHandler(service *service.MetricsService) *JsonBatchUpdateMetricsHandler {
+	return &JsonBatchUpdateMetricsHandler{
 		service: service,
 	}
 }
 
-func (h *JsonGetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -33,29 +33,31 @@ func (h *JsonGetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var request model.MetricRequest
+	var metrics []model.Metric
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&request); err != nil {
+	if err := decoder.Decode(&metrics); err != nil {
 		logger.Log.Error("cannot decode request JSON body", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	if request.ID == "" {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	m, err := h.service.GetMetric(r.Context(), request)
-
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-	} else {
-		w.WriteHeader(http.StatusOK)
-		enc := json.NewEncoder(w)
-		if err := enc.Encode(m); err != nil {
-			logger.Log.Error("error encoding response", zap.Error(err))
+	
+	for _, m := range metrics {
+		if m.ID == "" {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		if m.MType != model.Counter && m.MType != model.Gauge {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		} 
+	}
+
+	err := h.service.UpdateMetrics(r.Context(), metrics)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("{}"))
 	}
 }

@@ -43,7 +43,7 @@ func (h *UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.service.UpdateMetric(*metric)
+	err = h.service.UpdateMetric(r.Context(), *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {

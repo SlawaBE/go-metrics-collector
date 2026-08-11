@@ -16,13 +16,18 @@ if [ ! -d $LOG_DIR ] ; then
     exit 1
 fi
 
+if [ -z ${DATABASE_URL} ] ; then
+    echo 'Need `export DATABASE_URL=your_db_url`'
+    exit 1
+fi
+
 echo -n "Increment 1	...	"
 if ./metricstest.exe -test.v -test.run=^TestIteration1$ \
             -binary-path=${SERVER_BINARY} &> ${LOG_DIR}/iter1.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -31,9 +36,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration2[AB]*$ \
             -source-path=. \
             -agent-binary-path=${AGENT_BINARY} &> ${LOG_DIR}/iter2.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -43,9 +48,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration3[AB]*$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} &> ${LOG_DIR}/iter3.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -56,9 +61,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration4$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter4.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -69,9 +74,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration5$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter5.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -82,9 +87,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration6$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter6.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -95,9 +100,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration7$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter7.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -108,9 +113,9 @@ if ./metricstest.exe -test.v -test.run=^TestIteration8$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter8.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi
 
@@ -122,8 +127,64 @@ if ./metricstest -test.v -test.run=^TestIteration9$ \
             -server-port=${SERVER_PORT} \
             -source-path=. &> ${LOG_DIR}/iter9.log
 then
-	echo "[ OK ]"
+	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo "[FAIL]"
+	echo -e "[\033[31FAIL\033[0m]"
+	exit 1
+fi
+
+echo -n "Increment 10   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration10[AB]$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter10.log
+then
+	echo -e "[ \033[32mOK\033[0m ]"
+else
+	echo -e "[\033[31FAIL\033[0m]"
+	exit 1
+fi
+
+echo -n "Increment 11   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration11$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter11.log
+then
+	echo -e "[ \033[32mOK\033[0m ]"
+else
+	echo -e "[\033[31FAIL\033[0m]"
+	exit 1
+fi
+
+echo -n "Increment 12   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration12$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter12.log
+then
+	echo -e "[ \033[32mOK\033[0m ]"
+else
+	echo -e "[\033[31FAIL\033[0m]"
+	exit 1
+fi
+
+echo -n "Increment 13   ... "
+if ./metricstest.exe -test.v -test.run=^TestIteration13$ \
+            -agent-binary-path=${AGENT_BINARY} \
+            -binary-path=${SERVER_BINARY} \
+            -database-dsn=${DATABASE_URL} \
+            -server-port=${SERVER_PORT} \
+            -source-path=.  &> ${LOG_DIR}/iter13.log
+then
+	echo -e "[ \033[32mOK\033[0m ]"
+else
+	echo -e "[\033[31FAIL\033[0m]"
 	exit 1
 fi

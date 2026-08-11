@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -19,20 +20,21 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (s *MemStorage) UpdateMetric(metric model.Metric) error {
+func (s *MemStorage) UpdateMetric(ctx context.Context, metric model.Metric) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	return s.update(metric)
 }
 
-func (s *MemStorage) UpdateAll(metrics []model.Metric) {
+func (s *MemStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	for _, m := range metrics {
 		s.update(m)
 	}
+	return nil
 }
 
 func (s *MemStorage) update(metric model.Metric) error {
@@ -52,7 +54,7 @@ func (s *MemStorage) update(metric model.Metric) error {
 	return nil
 }
 
-func (s *MemStorage) GetValues() []model.Metric {
+func (s *MemStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	res := make([]model.Metric, 0, len(s.metrics))
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -61,7 +63,7 @@ func (s *MemStorage) GetValues() []model.Metric {
 		res = append(res, s.metrics[k])
 	}
 
-	return res
+	return res, nil
 }
 
 func (s *MemStorage) GetValuesAndClear() []model.Metric {
@@ -77,7 +79,7 @@ func (s *MemStorage) GetValuesAndClear() []model.Metric {
 	return res
 }
 
-func (s *MemStorage) GetMetric(id string) (*model.Metric, error) {
+func (s *MemStorage) GetMetric(ctx context.Context, id string) (*model.Metric, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 

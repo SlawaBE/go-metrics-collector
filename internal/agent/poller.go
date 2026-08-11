@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ func (p *Poller) Run() {
 func (p *Poller) Poll() {
 	metrics := GetRuntimeMetrics().convertToList()
 	for _, m := range metrics {
-	    if err := p.storage.UpdateMetric(m); err != nil {
+	    if err := p.storage.UpdateMetric(context.Background(), m); err != nil {
             fmt.Println("error update metric:", m.ID)
 	    }
 	}

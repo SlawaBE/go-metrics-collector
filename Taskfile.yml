@@ -48,7 +48,7 @@ tasks:
     cmds:
       - bash ./autotest.sh
 
-  build-all:
+  build:
     desc: Build all binaries
     deps: 
       - build-server

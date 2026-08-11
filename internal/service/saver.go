@@ -38,12 +38,22 @@ func (m *JsonFileMetricSaver) Load() error {
 		logger.Log.Error("Error loading metrics", zap.Error(err))
 		return err
 	}
-	m.storage.UpdateAll(metrics)
+	err = m.storage.UpdateAll(context.Background(), metrics)
+	if err != nil {
+		logger.Log.Error("Error updating metrics in storage", zap.Error(err))
+		return err
+	}
 	return nil
 }
 
 func (m *JsonFileMetricSaver) save() error {
-	data, err := json.Marshal(m.storage.GetValues())
+	list, err := m.storage.GetValues(context.Background())
+	if err != nil {
+		logger.Log.Error("Error saving metrics", zap.Error(err))
+		return err
+	}
+
+	data, err := json.Marshal(list)
 	if err != nil {
 		logger.Log.Error("Error saving metrics", zap.Error(err))
 		return err
