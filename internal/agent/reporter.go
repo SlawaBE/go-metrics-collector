@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils/checksum"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -16,6 +18,7 @@ type Reporter struct {
 	storage        Storage
 	reportInterval int
 	client         *resty.Client
+	secretKey      []byte
 }
 
 type Storage interface {
@@ -25,11 +28,12 @@ type Storage interface {
 
 var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
-func NewReporter(storage Storage, reportAddress string, reportInterval int) *Reporter {
+func NewReporter(storage Storage, reportAddress string, reportInterval int, secretKey string) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
 		client:         httpClient("http://" + reportAddress),
+		secretKey:      []byte(secretKey),
 	}
 }
 
@@ -61,8 +65,13 @@ func (r *Reporter) sendMetrics(metrics []model.Metric) error {
 		return fmt.Errorf("error compress metrics: %v", err)
 	}
 
-	res, err := r.client.R().
-		SetBody(data).
+	req := r.client.R()
+	if len(r.secretKey) > 0 {
+		sign := checksum.Sign(jsonData, r.secretKey)
+		req.SetHeaderVerbatim("HashSHA256", hex.EncodeToString(sign))
+	}
+
+	res, err := req.SetBody(data).
 		Post("/updates")
 
 	if err != nil {

@@ -87,7 +87,10 @@ func Run(config config.Config) {
 	}
 	//TODO разобраться с Graceful Shutdown иначе это смысла не имеет
 
-	r := InitRouter(metricsService, database)
+	var r http.Handler = InitRouter(metricsService, database)
+	if (config.Key != "") {
+		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
+	}
 	gzipper := middleware.GZip(r)
 	logger := middleware.RequestLogger(gzipper)
 
