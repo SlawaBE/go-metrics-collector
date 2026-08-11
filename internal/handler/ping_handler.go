@@ -22,6 +22,7 @@ func NewPingHandler(db *sql.DB) *PingHandler {
 func (h *PingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.db == nil {
 		w.WriteHeader(http.StatusOK)
+		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
