@@ -11,6 +11,7 @@ type Config struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	Key            string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func ReadConfig() (Config, error) {
@@ -20,6 +21,7 @@ func ReadConfig() (Config, error) {
 	flag.IntVar(&config.PollInterval, "p", 2, "metrics polling interval")
 	flag.IntVar(&config.ReportInterval, "r", 10, "metrics report interval")
 	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
+	flag.IntVar(&config.RateLimit, "l", 1, "metrics report interval")
 
 	flag.Parse()
 

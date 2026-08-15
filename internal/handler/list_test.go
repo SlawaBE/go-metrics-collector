@@ -48,7 +48,7 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 			},
 			want: output{
 				statusCode: 200,
-				value:      "A: 1\nB: 1.1\n",
+				value:      "<ul><li>A: 1</li><li>B: 1.1</li></ul>",
 			},
 		},
 	}
