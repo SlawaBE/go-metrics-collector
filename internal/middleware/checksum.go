@@ -34,10 +34,6 @@ func (ww *responseWriterWrapper) Write(data []byte) (int, error) {
 func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signatureHeader := r.Header.Get("HashSHA256")
-
-		for k, v := range r.Header {
-			fmt.Println(k, v)
-		}
 		if signatureHeader == "" {
 			logger.Log.Error("Header 'HashSHA256' does not exist")
 			http.Error(w, "Header 'HashSHA256' does not exist", http.StatusBadRequest)
