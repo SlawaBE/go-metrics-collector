@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net/http"
 
