@@ -104,7 +104,7 @@ func (r *Reporter) sendMetrics(metrics []model.Metric) error {
 	req := r.client.R()
 	if len(r.secretKey) > 0 {
 		sign := checksum.Sign(jsonData, r.secretKey)
-		req.SetHeaderVerbatim("HashSHA256", hex.EncodeToString(sign))
+		req.SetHeader("HashSHA256", hex.EncodeToString(sign))
 	}
 
 	res, err := req.SetBody(data).

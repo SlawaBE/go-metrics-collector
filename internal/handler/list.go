@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 )
@@ -31,9 +32,13 @@ func (h *ListMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("<ul>"))
+	var builder strings.Builder
+	builder.WriteString("<ul>")
 	for _, v := range list {
-		w.Write([]byte("<li>" + v + "</li>"))
+		builder.WriteString("<li>")
+		builder.WriteString(v)
+		builder.WriteString("</li>")
 	}
-	w.Write([]byte("</ul>"))
+	builder.WriteString("</ul>")
+	w.Write([]byte(builder.String()))
 }

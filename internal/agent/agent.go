@@ -10,7 +10,7 @@ import (
 func Run(config config.Config) {
 	storage := storage.NewMemStorage()
 	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
-	gopsutilPoller := NewGopsultilMetricsPoller(storage, config.PollInterval)
+	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval)
 	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
 
 	ctx, cancel := context.WithCancel(context.Background())

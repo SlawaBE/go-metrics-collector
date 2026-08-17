@@ -130,32 +130,44 @@ func (m *RuntimeMetrics) convertToList() []model.Metric {
 }
 
 type GopsutilsMetrics struct {
-	TotalMemory    float64
-	FreeMemory     float64
+	TotalMemory    *float64
+	FreeMemory     *float64
 	CPUutilization []float64
 }
 
 func GetGopsutilsMetrics() *GopsutilsMetrics {
 	m := GopsutilsMetrics{}
 
-	memoryStat, _ := mem.VirtualMemory()
-	m.TotalMemory = float64(memoryStat.Total)
-	m.FreeMemory = float64(memoryStat.Free)
+	memoryStat, err := mem.VirtualMemory()
+	if err != nil {
+		fmt.Println("failed read virtual memory stat")
+	} else {
+		m.TotalMemory = new(float64(memoryStat.Total))
+		m.FreeMemory = new(float64(memoryStat.Free))
+	}
 
-	m.CPUutilization, _ = cpu.Percent(0, true)
+	m.CPUutilization, err = cpu.Percent(0, true)
+	if err != nil {
+		fmt.Println("failed read CPU utilization")
+	}
 
 	return &m
 }
 
 func (m *GopsutilsMetrics) convertToList() []model.Metric {
-	list := []model.Metric{
-		model.NewGaugeMetric("FreeMemory", m.FreeMemory),
-		model.NewGaugeMetric("TotalMemory", m.TotalMemory),
+	list := []model.Metric{}
+	if m.FreeMemory != nil {
+		list = append(list, model.NewGaugeMetric("FreeMemory", *m.FreeMemory))
+	}
+	if m.TotalMemory != nil {
+		list = append(list, model.NewGaugeMetric("TotalMemory", *m.TotalMemory))
 	}
 
-	for numCpu, percentage := range m.CPUutilization {
-		list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCpu+1), percentage))
-	}
+	if m.CPUutilization != nil {
+		for numCpu, percentage := range m.CPUutilization {
+			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCpu+1), percentage))
+		}
+	}	
 
 	return list
 }

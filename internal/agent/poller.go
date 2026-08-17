@@ -27,7 +27,7 @@ func NewRuntimeMetricsPoller(storage storage.Storage, pollInterval int) *Poller 
 	return NewPoller(storage, pollInterval, func() []model.Metric { return GetRuntimeMetrics().convertToList() })
 }
 
-func NewGopsultilMetricsPoller(storage storage.Storage, pollInterval int) *Poller {
+func NewGopsutilMetricsPoller(storage storage.Storage, pollInterval int) *Poller {
 	return NewPoller(storage, pollInterval, func() []model.Metric { return GetGopsutilsMetrics().convertToList() })
 }
 
