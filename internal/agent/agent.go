@@ -1,15 +1,22 @@
 package agent
 
 import (
+	"context"
+
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 )
 
 func Run(config config.Config) {
 	storage := storage.NewMemStorage()
-	poller := NewPoller(storage, config.PollInterval)
-	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval)
+	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
+	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval)
+	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
 
-	go poller.Run()
-	reporter.Run()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go runtimePoller.Run(ctx)
+	go gopsutilPoller.Run(ctx)
+	reporter.Run(ctx)
 }

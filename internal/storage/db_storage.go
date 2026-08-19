@@ -94,7 +94,7 @@ func (s *DBStorage) GetMetric(ctx context.Context, id string) (*model.Metric, er
 		rows := s.db.QueryRowContext(ctx, SELECT_METRIC, id)
 		var err error
 		if err = rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); err != nil {
-			logger.Log.Error("error get metric", zap.Error(err))
+			logger.Log.Error("error get metric", zap.String("id", id), zap.Error(err))
 		}
 		return err
 	})

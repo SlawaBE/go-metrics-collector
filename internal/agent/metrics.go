@@ -1,13 +1,20 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
-type Metrics struct {
+type Metrics interface {
+	convertToList() []model.Metric
+}
+
+type RuntimeMetrics struct {
 	// метрики из runtime
 	Alloc         float64
 	BuckHashSys   float64
@@ -41,11 +48,11 @@ type Metrics struct {
 	PollCount   int64
 }
 
-func GetRuntimeMetrics() *Metrics {
+func GetRuntimeMetrics() *RuntimeMetrics {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	m := Metrics{}
+	m := RuntimeMetrics{}
 
 	m.Alloc = float64(memStats.Alloc)
 	m.BuckHashSys = float64(memStats.BuckHashSys)
@@ -80,7 +87,7 @@ func GetRuntimeMetrics() *Metrics {
 	return &m
 }
 
-func (m *Metrics) convertToMap() map[string]model.Metric {
+func (m *RuntimeMetrics) convertToMap() map[string]model.Metric {
 	res := make(map[string]model.Metric)
 	for _, v := range m.convertToList() {
 		res[v.ID] = v
@@ -88,7 +95,7 @@ func (m *Metrics) convertToMap() map[string]model.Metric {
 	return res
 }
 
-func (m *Metrics) convertToList() []model.Metric {
+func (m *RuntimeMetrics) convertToList() []model.Metric {
 	return []model.Metric{
 		model.NewGaugeMetric("Alloc", m.Alloc),
 		model.NewGaugeMetric("BuckHashSys", m.BuckHashSys),
@@ -120,4 +127,47 @@ func (m *Metrics) convertToList() []model.Metric {
 		model.NewGaugeMetric("RandomValue", m.RandomValue),
 		model.NewCounterMetric("PollCount", m.PollCount),
 	}
+}
+
+type GopsutilsMetrics struct {
+	TotalMemory    *float64
+	FreeMemory     *float64
+	CPUutilization []float64
+}
+
+func GetGopsutilsMetrics() *GopsutilsMetrics {
+	m := GopsutilsMetrics{}
+
+	memoryStat, err := mem.VirtualMemory()
+	if err != nil {
+		fmt.Println("failed read virtual memory stat")
+	} else {
+		m.TotalMemory = new(float64(memoryStat.Total))
+		m.FreeMemory = new(float64(memoryStat.Free))
+	}
+
+	m.CPUutilization, err = cpu.Percent(0, true)
+	if err != nil {
+		fmt.Println("failed read CPU utilization")
+	}
+
+	return &m
+}
+
+func (m *GopsutilsMetrics) convertToList() []model.Metric {
+	list := []model.Metric{}
+	if m.FreeMemory != nil {
+		list = append(list, model.NewGaugeMetric("FreeMemory", *m.FreeMemory))
+	}
+	if m.TotalMemory != nil {
+		list = append(list, model.NewGaugeMetric("TotalMemory", *m.TotalMemory))
+	}
+
+	if m.CPUutilization != nil {
+		for numCpu, percentage := range m.CPUutilization {
+			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCpu+1), percentage))
+		}
+	}	
+
+	return list
 }

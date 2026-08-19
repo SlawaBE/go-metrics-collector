@@ -1,14 +1,18 @@
 package agent
 
 import (
+	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils/checksum"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -16,6 +20,8 @@ type Reporter struct {
 	storage        Storage
 	reportInterval int
 	client         *resty.Client
+	secretKey      []byte
+	rateLimit      int
 }
 
 type Storage interface {
@@ -25,18 +31,52 @@ type Storage interface {
 
 var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
-func NewReporter(storage Storage, reportAddress string, reportInterval int) *Reporter {
+func NewReporter(storage Storage, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		reportInterval: reportInterval,
 		client:         httpClient("http://" + reportAddress),
+		secretKey:      []byte(secretKey),
+		rateLimit:      rateLimit,
 	}
 }
 
-func (r *Reporter) Run() {
+func (r *Reporter) Run(ctx context.Context) {
+	jobs := make(chan []model.Metric, r.rateLimit)
+	var wg sync.WaitGroup
+
+	for range r.rateLimit {
+		wg.Go(func() {
+			r.work(ctx, jobs)
+		})
+	}
+
+	ticker := time.NewTicker(time.Duration(r.reportInterval) * time.Second)
 	for {
-		time.Sleep(time.Duration(r.reportInterval) * time.Second)
-		r.Report()
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			wg.Wait()
+			return
+		case <-ticker.C:
+			jobs <- r.storage.GetValuesAndClear()
+		}
+	}
+}
+
+func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case metrics := <-jobs:
+			if len(metrics) == 0 {
+				continue
+			}
+			if err := r.sendMetrics(metrics); err != nil {
+				fmt.Println("Error sending metrics:", err)
+			}
+		}
 	}
 }
 
@@ -61,8 +101,13 @@ func (r *Reporter) sendMetrics(metrics []model.Metric) error {
 		return fmt.Errorf("error compress metrics: %v", err)
 	}
 
-	res, err := r.client.R().
-		SetBody(data).
+	req := r.client.R()
+	if len(r.secretKey) > 0 {
+		sign := checksum.Sign(jsonData, r.secretKey)
+		req.SetHeader("HashSHA256", hex.EncodeToString(sign))
+	}
+
+	res, err := req.SetBody(data).
 		Post("/updates")
 
 	if err != nil {
