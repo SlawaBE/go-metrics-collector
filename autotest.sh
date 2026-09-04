@@ -27,7 +27,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration1$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -38,7 +38,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration2[AB]*$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -50,7 +50,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration3[AB]*$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -63,7 +63,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration4$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -76,7 +76,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration5$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -89,7 +89,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration6$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -102,7 +102,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration7$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -115,7 +115,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration8$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -129,7 +129,7 @@ if ./metricstest -test.v -test.run=^TestIteration9$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -143,7 +143,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration10[AB]$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -157,7 +157,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration11$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -171,7 +171,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration12$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -185,7 +185,7 @@ if ./metricstest.exe -test.v -test.run=^TestIteration13$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
 
@@ -200,6 +200,6 @@ if ./metricstest -test.v -test.run=^TestIteration14$ \
 then
 	echo -e "[ \033[32mOK\033[0m ]"
 else
-	echo -e "[\033[31FAIL\033[0m]"
+	echo -e "[\033[31mFAIL\033[0m]"
 	exit 1
 fi
