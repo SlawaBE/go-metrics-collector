@@ -125,9 +125,10 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
+	auditPublisher := service.NewAuditService()
 	saver := service.NewJsonFileMetricSaver(-1, "", stor)
 	service := service.NewMetricsService(stor, saver)
-	handler := NewUpdateMetricHandler(service)
+	handler := NewUpdateMetricHandler(service, auditPublisher)
 
 	r := chi.NewRouter()
 	r.Handle("POST /update/{type}/{name}/{value}", handler)

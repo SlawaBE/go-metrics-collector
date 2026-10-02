@@ -8,8 +8,10 @@ vars:
   SERVER_BINARY: cmd/server/server{{.EXE}}
   AGENT_BINARY: cmd/agent/agent{{.EXE}}
   HASHER_BINARY: cmd/hasher/hasher{{.EXE}}
+  STATICTEST_BINARY: statictest{{.EXE}}
   LOG_DIR: logs
   TEMP_FILE: tempfile
+  AUDIT_FILE: audit.log
 
 tasks:
   clean:
@@ -20,6 +22,7 @@ tasks:
       - rm -f {{.HASHER_BINARY}}
       - rm -rf {{.LOG_DIR}}
       - rm -f {{.TEMP_FILE}}
+      - rm -f {{.AUDIT_FILE}}
 
   build-server:
     desc: Build server
@@ -53,6 +56,11 @@ tasks:
     cmds:
       - go test -v ./...
 
+  vet:
+    desc: Run statictest
+    cmds:
+      - go vet -vettool={{.STATICTEST_BINARY}} ./...
+
   autotest:
     desc: Run autotests
     deps: 
@@ -70,5 +78,6 @@ tasks:
   test-all:
     desc: Run all test
     cmds:
+      # - task vet
       - task test
       - task autotest

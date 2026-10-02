@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -11,12 +12,14 @@ import (
 )
 
 type JsonUpdateMetricHandler struct {
-	service *service.MetricsService
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewJsonUpdateMetricHandler(service *service.MetricsService) *JsonUpdateMetricHandler {
+func NewJsonUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JsonUpdateMetricHandler {
 	return &JsonUpdateMetricHandler{
-		service: service,
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
@@ -47,6 +50,8 @@ func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	err := h.service.UpdateMetric(r.Context(), metric)
+
+	h.auditPublisher.SendMetric(r.Context(), strings.Split(r.RemoteAddr, ":")[0], metric)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

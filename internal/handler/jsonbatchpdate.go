@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -11,12 +12,14 @@ import (
 )
 
 type JsonBatchUpdateMetricsHandler struct {
-	service *service.MetricsService
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewJsonBatchUpdateMetricsHandler(service *service.MetricsService) *JsonBatchUpdateMetricsHandler {
+func NewJsonBatchUpdateMetricsHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JsonBatchUpdateMetricsHandler {
 	return &JsonBatchUpdateMetricsHandler{
-		service: service,
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
@@ -40,7 +43,7 @@ func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	
+
 	for _, m := range metrics {
 		if m.ID == "" {
 			w.WriteHeader(http.StatusNotFound)
@@ -49,10 +52,12 @@ func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		if m.MType != model.Counter && m.MType != model.Gauge {
 			w.WriteHeader(http.StatusBadRequest)
 			return
-		} 
+		}
 	}
 
 	err := h.service.UpdateMetrics(r.Context(), metrics)
+
+	h.auditPublisher.SendMetrics(r.Context(), strings.Split(r.RemoteAddr, ":")[0], metrics)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

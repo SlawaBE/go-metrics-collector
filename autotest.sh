@@ -10,7 +10,7 @@ else
 fi
 SERVER_BINARY="cmd/server/server${EXE}"
 AGENT_BINARY="cmd/agent/agent${EXE}"
-METRICSTEST_BINARY="metricstest${EXE}"
+METRICSTEST_BINARY="metricstest-windows-amd64${EXE}"
 LOG_DIR=logs
 
 if [ ! -e $LOG_DIR ] ; then
