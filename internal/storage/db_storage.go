@@ -92,13 +92,16 @@ func (s *DBStorage) GetMetric(ctx context.Context, id string) (*model.Metric, er
 	var metric model.Metric
 	err := retry.RetryWithBackoff(ctx, func() error {
 		rows := s.db.QueryRowContext(ctx, SELECT_METRIC, id)
-		var err error
-		if err = rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); err != nil {
+		if err := rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); err != nil {
 			logger.Log.Error("error get metric", zap.String("id", id), zap.Error(err))
+			return err
 		}
-		return err
+		return nil
 	})
-	return &metric, err
+	if err != nil {
+		return nil, err
+	}
+	return &metric, nil
 }
 
 func (s *DBStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error {
