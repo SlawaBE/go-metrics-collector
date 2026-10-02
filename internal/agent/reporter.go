@@ -125,9 +125,9 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 	return nil
 }
 
-func httpClient(baseUrl string) *resty.Client {
+func httpClient(baseURL string) *resty.Client {
 	client := resty.New().
-		SetBaseURL(baseUrl).
+		SetBaseURL(baseURL).
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").

@@ -27,9 +27,9 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 	updateHandler := handler.NewUpdateMetricHandler(service, auditPublisher)
 	getHandler := handler.NewGetMetricHandler(service)
 	listHandler := handler.NewListMetricHandler(service)
-	jsonUpdateHandler := handler.NewJsonUpdateMetricHandler(service, auditPublisher)
-	jsonGetMetricHandler := handler.NewJsonGetMetricHandler(service)
-	jsonBatchUpdatesHandler := handler.NewJsonBatchUpdateMetricsHandler(service, auditPublisher)
+	jsonUpdateHandler := handler.NewJSONUpdateMetricHandler(service, auditPublisher)
+	jsonGetMetricHandler := handler.NewJSONGetMetricHandler(service)
+	jsonBatchUpdatesHandler := handler.NewJSONBatchUpdateMetricsHandler(service, auditPublisher)
 
 	r.Handle("GET /", listHandler)
 	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
@@ -82,7 +82,7 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
-		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
+		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
 		if config.Restore {
 			saver.Load()
 		}
@@ -93,7 +93,7 @@ func Run(config config.Config) {
 
 	auditService := service.NewAuditService()
 	fileAuditSubscriber := service.NewFileAuditSubscriber(config.AuditFile)
-	httpAuditSubscriber := service.NewHttpAuditSubscriber(config.AuditURL)
+	httpAuditSubscriber := service.NewHTTPAuditSubscriber(config.AuditURL)
 	auditService.Subscribe(fileAuditSubscriber)
 	auditService.Subscribe(httpAuditSubscriber)
 

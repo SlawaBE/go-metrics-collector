@@ -78,6 +78,6 @@ tasks:
   test-all:
     desc: Run all test
     cmds:
-      # - task vet
+      - task vet
       - task test
       - task autotest

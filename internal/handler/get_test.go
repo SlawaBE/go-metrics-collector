@@ -107,7 +107,7 @@ func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
-	saver := service.NewJsonFileMetricSaver(-1, "", stor)
+	saver := service.NewJSONFileMetricSaver(-1, "", stor)
 	h := NewGetMetricHandler(service.NewMetricsService(stor, saver))
 
 	r := chi.NewRouter()

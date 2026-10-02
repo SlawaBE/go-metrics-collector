@@ -78,13 +78,13 @@ func (f *FileAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent
 	return nil
 }
 
-type HttpAuditSubscriber struct {
+type HTTPAuditSubscriber struct {
 	url    string
 	client *http.Client
 }
 
-func NewHttpAuditSubscriber(url string) *HttpAuditSubscriber {
-	return &HttpAuditSubscriber{
+func NewHTTPAuditSubscriber(url string) *HTTPAuditSubscriber {
+	return &HTTPAuditSubscriber{
 		url: url,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
@@ -92,11 +92,11 @@ func NewHttpAuditSubscriber(url string) *HttpAuditSubscriber {
 	}
 }
 
-func (h *HttpAuditSubscriber) Name() string {
+func (h *HTTPAuditSubscriber) Name() string {
 	return "HttpSubscriber"
 }
 
-func (h *HttpAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
+func (h *HTTPAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
 	jsonData, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event: %w", err)
