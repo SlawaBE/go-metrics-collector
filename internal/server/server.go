@@ -22,14 +22,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
+func InitRouter(service *service.MetricsService, database *sql.DB, auditPublisher service.AuditPublisher) chi.Router {
 	r := chi.NewRouter()
-	updateHandler := handler.NewUpdateMetricHandler(service)
+	updateHandler := handler.NewUpdateMetricHandler(service, auditPublisher)
 	getHandler := handler.NewGetMetricHandler(service)
 	listHandler := handler.NewListMetricHandler(service)
-	jsonUpdateHandler := handler.NewJsonUpdateMetricHandler(service)
-	jsonGetMetricHandler := handler.NewJsonGetMetricHandler(service)
-	jsonBatchUpdatesHandler := handler.NewJsonBatchUpdateMetricsHandler(service)
+	jsonUpdateHandler := handler.NewJSONUpdateMetricHandler(service, auditPublisher)
+	jsonGetMetricHandler := handler.NewJSONGetMetricHandler(service)
+	jsonBatchUpdatesHandler := handler.NewJSONBatchUpdateMetricsHandler(service, auditPublisher)
 
 	r.Handle("GET /", listHandler)
 	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
@@ -82,7 +82,7 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
-		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
+		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
 		if config.Restore {
 			saver.Load()
 		}
@@ -91,7 +91,13 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, saver)
 	}
 
-	var r http.Handler = InitRouter(metricsService, database)
+	auditService := service.NewAuditService()
+	fileAuditSubscriber := service.NewFileAuditSubscriber(config.AuditFile)
+	httpAuditSubscriber := service.NewHTTPAuditSubscriber(config.AuditURL)
+	auditService.Subscribe(fileAuditSubscriber)
+	auditService.Subscribe(httpAuditSubscriber)
+
+	var r http.Handler = InitRouter(metricsService, database, auditService)
 	if config.Key != "" {
 		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
 	}

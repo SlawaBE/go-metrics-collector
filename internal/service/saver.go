@@ -12,21 +12,21 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonFileMetricSaver struct {
+type JSONFileMetricSaver struct {
 	interval int
 	fileName string
 	storage  storage.Storage
 }
 
-func NewJsonFileMetricSaver(interval int, fileName string, storage storage.Storage) *JsonFileMetricSaver {
-	return &JsonFileMetricSaver{
+func NewJSONFileMetricSaver(interval int, fileName string, storage storage.Storage) *JSONFileMetricSaver {
+	return &JSONFileMetricSaver{
 		interval: interval,
 		fileName: fileName,
 		storage:  storage,
 	}
 }
 
-func (m *JsonFileMetricSaver) Load() error {
+func (m *JSONFileMetricSaver) Load() error {
 	data, err := os.ReadFile(m.fileName)
 	if err != nil {
 		logger.Log.Error("Error loading metrics", zap.Error(err))
@@ -46,7 +46,7 @@ func (m *JsonFileMetricSaver) Load() error {
 	return nil
 }
 
-func (m *JsonFileMetricSaver) save() error {
+func (m *JSONFileMetricSaver) save() error {
 	list, err := m.storage.GetValues(context.Background())
 	if err != nil {
 		logger.Log.Error("Error saving metrics", zap.Error(err))
@@ -61,14 +61,14 @@ func (m *JsonFileMetricSaver) save() error {
 	return os.WriteFile(m.fileName, data, 0644)
 }
 
-func (m *JsonFileMetricSaver) SaveSync() error {
+func (m *JSONFileMetricSaver) SaveSync() error {
 	if m.interval == 0 {
 		return m.save()
 	}
 	return nil
 }
 
-func (m *JsonFileMetricSaver) StartSync(ctx context.Context) {
+func (m *JSONFileMetricSaver) StartSync(ctx context.Context) {
 	if m.interval <= 0 {
 		return
 	}

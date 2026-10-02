@@ -53,7 +53,7 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
-	saver := service.NewJsonFileMetricSaver(-1, "", stor)
+	saver := service.NewJSONFileMetricSaver(-1, "", stor)
 	h := NewListMetricHandler(service.NewMetricsService(stor, saver))
 
 	r := chi.NewRouter()

@@ -164,8 +164,8 @@ func (m *GopsutilsMetrics) convertToList() []model.Metric {
 	}
 
 	if m.CPUutilization != nil {
-		for numCpu, percentage := range m.CPUutilization {
-			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCpu+1), percentage))
+		for numCPU, percentage := range m.CPUutilization {
+			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCPU+1), percentage))
 		}
 	}	
 

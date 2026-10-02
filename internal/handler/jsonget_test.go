@@ -141,8 +141,8 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
-	saver := service.NewJsonFileMetricSaver(-1, "", stor)
-	h := NewJsonGetMetricHandler(service.NewMetricsService(stor, saver))
+	saver := service.NewJSONFileMetricSaver(-1, "", stor)
+	h := NewJSONGetMetricHandler(service.NewMetricsService(stor, saver))
 
 	r := chi.NewRouter()
 	r.Handle("POST /value", h)

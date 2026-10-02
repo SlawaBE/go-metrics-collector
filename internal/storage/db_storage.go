@@ -21,12 +21,12 @@ func NewDBStorage(db *sql.DB) *DBStorage {
 }
 
 const (
-	INSERT_METRIC = `INSERT INTO metrics (id, type, delta, value) VALUES ($1, $2, $3, $4)
+	insertMetric = `INSERT INTO metrics (id, type, delta, value) VALUES ($1, $2, $3, $4)
 						ON CONFLICT (id)
 						DO UPDATE SET delta = metrics.delta + $3, value = $4;`
-	SELECT_METRICS = `SELECT id, type, delta, value
+	selectMetrics = `SELECT id, type, delta, value
 						FROM metrics`
-	SELECT_METRIC = `SELECT id, type, delta, value
+	selectMetric = `SELECT id, type, delta, value
 						FROM metrics
 						WHERE id = $1`
 )
@@ -40,7 +40,7 @@ func (s *DBStorage) UpdateMetric(ctx context.Context, metric model.Metric) error
 		}
 		defer tx.Rollback()
 
-		stmt, err := tx.PrepareContext(ctx, INSERT_METRIC)
+		stmt, err := tx.PrepareContext(ctx, insertMetric)
 		if err != nil {
 			logger.Log.Error("error prepare statement", zap.Error(err))
 			return err
@@ -64,7 +64,7 @@ func (s *DBStorage) UpdateMetric(ctx context.Context, metric model.Metric) error
 func (s *DBStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	metrics := make([]model.Metric, 0)
 	return metrics, retry.RetryWithBackoff(ctx, func() error {
-		rows, err := s.db.QueryContext(ctx, SELECT_METRICS)
+		rows, err := s.db.QueryContext(ctx, selectMetrics)
 		if err != nil {
 			logger.Log.Error("error get all metric", zap.Error(err))
 			return err
@@ -91,7 +91,7 @@ func (s *DBStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 func (s *DBStorage) GetMetric(ctx context.Context, id string) (*model.Metric, error) {
 	var metric model.Metric
 	err := retry.RetryWithBackoff(ctx, func() error {
-		rows := s.db.QueryRowContext(ctx, SELECT_METRIC, id)
+		rows := s.db.QueryRowContext(ctx, selectMetric, id)
 		if err := rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); err != nil {
 			logger.Log.Error("error get metric", zap.String("id", id), zap.Error(err))
 			return err
@@ -113,7 +113,7 @@ func (s *DBStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error
 		}
 		defer tx.Rollback()
 
-		stmt, err := tx.PrepareContext(ctx, INSERT_METRIC)
+		stmt, err := tx.PrepareContext(ctx, insertMetric)
 		if err != nil {
 			logger.Log.Error("error prepare statement", zap.Error(err))
 			return err

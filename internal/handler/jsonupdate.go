@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -10,17 +11,19 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonUpdateMetricHandler struct {
-	service *service.MetricsService
+type JSONUpdateMetricHandler struct {
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewJsonUpdateMetricHandler(service *service.MetricsService) *JsonUpdateMetricHandler {
-	return &JsonUpdateMetricHandler{
-		service: service,
+func NewJSONUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JSONUpdateMetricHandler {
+	return &JSONUpdateMetricHandler{
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
-func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JSONUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -47,6 +50,8 @@ func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	err := h.service.UpdateMetric(r.Context(), metric)
+
+	h.auditPublisher.SendMetric(r.Context(), strings.Split(r.RemoteAddr, ":")[0], metric)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

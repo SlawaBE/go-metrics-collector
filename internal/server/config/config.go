@@ -13,6 +13,8 @@ type Config struct {
 	Restore         bool   `env:"RESTORE"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 	Key             string `env:"KEY"`
+	AuditFile       string `env:"AUDIT_FILE"`
+	AuditURL        string `env:"AUDIT_URL"`
 }
 
 func ReadConfig() (Config, error) {
@@ -24,6 +26,8 @@ func ReadConfig() (Config, error) {
 	flag.BoolVar(&config.Restore, "r", false, "restore metric from file")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "database url")
 	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
+	flag.StringVar(&config.AuditFile, "audit-file", "", "file for writing audit event")
+	flag.StringVar(&config.AuditURL, "audit-url", "", "url for sending audit event")
 	flag.Parse()
 
 	err := env.Parse(&config)

@@ -20,6 +20,7 @@ cmd/hasher/main
 cmd/hasher/hasher
 
 metricstest
+statictest
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -32,3 +33,4 @@ logs/
 .task/
 storage.json
 tempfile
+audit.log
