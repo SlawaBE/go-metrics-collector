@@ -3,8 +3,14 @@
 SERVER_PORT=8081
 ADDRESS="localhost:${SERVER_PORT}"
 TEMP_FILE="tempfile"
-SERVER_BINARY=cmd/server/server.exe
-AGENT_BINARY=cmd/agent/agent.exe
+if [[ "$(go env GOOS)" == "windows" ]]; then
+    EXE=".exe"
+else
+    EXE=""
+fi
+SERVER_BINARY="cmd/server/server${EXE}"
+AGENT_BINARY="cmd/agent/agent${EXE}"
+METRICSTEST_BINARY="metricstest${EXE}"
 LOG_DIR=logs
 
 if [ ! -e $LOG_DIR ] ; then
@@ -22,7 +28,7 @@ if [ -z ${DATABASE_URL} ] ; then
 fi
 
 echo -n "Increment 1	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration1$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration1$ \
             -binary-path=${SERVER_BINARY} &> ${LOG_DIR}/iter1.log
 then
 	echo -e "[ \033[32mOK\033[0m ]"
@@ -32,7 +38,7 @@ else
 fi
 
 echo -n "Increment 2	...	"			
-if ./metricstest.exe -test.v -test.run=^TestIteration2[AB]*$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration2[AB]*$ \
             -source-path=. \
             -agent-binary-path=${AGENT_BINARY} &> ${LOG_DIR}/iter2.log
 then
@@ -43,7 +49,7 @@ else
 fi
 
 echo -n "Increment 3	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration3[AB]*$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration3[AB]*$ \
             -source-path=. \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} &> ${LOG_DIR}/iter3.log
@@ -55,7 +61,7 @@ else
 fi
 
 echo -n "Increment 4	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration4$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration4$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -68,7 +74,7 @@ else
 fi
 
 echo -n "Increment 5	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration5$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration5$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -81,7 +87,7 @@ else
 fi
 
 echo -n "Increment 6	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration6$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration6$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -94,7 +100,7 @@ else
 fi
 
 echo -n "Increment 7	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration7$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration7$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -107,7 +113,7 @@ else
 fi
 
 echo -n "Increment 8	...	"
-if ./metricstest.exe -test.v -test.run=^TestIteration8$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration8$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -server-port=${SERVER_PORT} \
@@ -120,7 +126,7 @@ else
 fi
 
 echo -n "Increment 9	...	"
-if ./metricstest -test.v -test.run=^TestIteration9$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration9$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -file-storage-path=${TEMP_FILE} \
@@ -134,7 +140,7 @@ else
 fi
 
 echo -n "Increment 10   ... "
-if ./metricstest.exe -test.v -test.run=^TestIteration10[AB]$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration10[AB]$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -database-dsn=${DATABASE_URL} \
@@ -148,7 +154,7 @@ else
 fi
 
 echo -n "Increment 11   ... "
-if ./metricstest.exe -test.v -test.run=^TestIteration11$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration11$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -database-dsn=${DATABASE_URL} \
@@ -162,7 +168,7 @@ else
 fi
 
 echo -n "Increment 12   ... "
-if ./metricstest.exe -test.v -test.run=^TestIteration12$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration12$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -database-dsn=${DATABASE_URL} \
@@ -176,7 +182,7 @@ else
 fi
 
 echo -n "Increment 13   ... "
-if ./metricstest.exe -test.v -test.run=^TestIteration13$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration13$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -database-dsn=${DATABASE_URL} \
@@ -190,7 +196,7 @@ else
 fi
 
 echo -n "Increment 14   ... "
-if ./metricstest -test.v -test.run=^TestIteration14$ \
+if ./${METRICSTEST_BINARY} -test.v -test.run=^TestIteration14$ \
             -agent-binary-path=${AGENT_BINARY} \
             -binary-path=${SERVER_BINARY} \
             -database-dsn=${DATABASE_URL} \

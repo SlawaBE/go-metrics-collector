@@ -3,9 +3,11 @@
 version: '3'
 
 vars:
-  SERVER_BINARY: cmd/server/server.exe
-  AGENT_BINARY: cmd/agent/agent.exe
-  HASHER_BINARY: cmd/hasher/hasher.exe
+  EXE:
+    sh: go env GOOS | grep -q windows && echo .exe || echo ""
+  SERVER_BINARY: cmd/server/server{{.EXE}}
+  AGENT_BINARY: cmd/agent/agent{{.EXE}}
+  HASHER_BINARY: cmd/hasher/hasher{{.EXE}}
   LOG_DIR: logs
   TEMP_FILE: tempfile
 

@@ -19,6 +19,8 @@ cmd/server/server
 cmd/hasher/main
 cmd/hasher/hasher
 
+metricstest
+
 # Dependency directories (remove the comment below to include it)
 vendor/
 
