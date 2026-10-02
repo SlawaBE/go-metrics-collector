@@ -50,6 +50,11 @@ func GZip(handler http.Handler) http.Handler {
 		}
 		handler.ServeHTTP(recorder, r)
 
+		if recorder.body.Len() == 0 {
+			w.WriteHeader(recorder.status)
+			return
+		}
+
 		contentType := recorder.Header().Get("Content-Type")
 		if strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html") {
 			gzipWriter := gzip.NewCompressWriter(w)

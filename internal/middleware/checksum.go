@@ -32,33 +32,35 @@ func (ww *responseWriterWrapper) Write(data []byte) (int, error) {
 
 func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		signatureHeader := r.Header.Get("HashSHA256")
-		if signatureHeader == "" {
-			logger.Log.Error("Header 'HashSHA256' does not exist")
-			http.Error(w, "Header 'HashSHA256' does not exist", http.StatusBadRequest)
-			return
-		}
+		if r.Method != http.MethodGet {
+			signatureHeader := r.Header.Get("HashSHA256")
+			if signatureHeader == "" {
+				logger.Log.Error("Header 'HashSHA256' does not exist")
+				http.Error(w, "Header 'HashSHA256' does not exist", http.StatusBadRequest)
+				return
+			}
 
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			logger.Log.Error("Failed to read request body", zap.Error(err))
-			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-			return
-		}
-		r.Body.Close()
-		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				logger.Log.Error("Failed to read request body", zap.Error(err))
+				http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+				return
+			}
+			r.Body.Close()
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-		sign, err := hex.DecodeString(signatureHeader)
-		if err != nil {
-			logger.Log.Error("Invalid signature format", zap.Error(err))
-			http.Error(w, "Invalid signature format", http.StatusBadRequest)
-			return
-		}
+			sign, err := hex.DecodeString(signatureHeader)
+			if err != nil {
+				logger.Log.Error("Invalid signature format", zap.Error(err))
+				http.Error(w, "Invalid signature format", http.StatusBadRequest)
+				return
+			}
 
-		if !checksum.Check(bodyBytes, sign, c.secretKey) {
-			logger.Log.Error("Invalid signature", zap.Error(err))
-			http.Error(w, "Invalid signature", http.StatusBadRequest)
-			return
+			if !checksum.Check(bodyBytes, sign, c.secretKey) {
+				logger.Log.Error("Invalid signature", zap.Error(err))
+				http.Error(w, "Invalid signature", http.StatusBadRequest)
+				return
+			}
 		}
 
 		ww := &responseWriterWrapper{
