@@ -59,7 +59,10 @@ func (r *Reporter) Run(ctx context.Context) {
 			wg.Wait()
 			return
 		case <-ticker.C:
-			jobs <- r.storage.GetValuesAndClear()
+			select {
+			case <-ctx.Done():
+			case jobs <- r.storage.GetValuesAndClear():
+			}
 		}
 	}
 }
@@ -73,7 +76,7 @@ func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
 			if len(metrics) == 0 {
 				continue
 			}
-			if err := r.sendMetrics(metrics); err != nil {
+			if err := r.sendMetrics(ctx, metrics); err != nil {
 				fmt.Println("Error sending metrics:", err)
 			}
 		}
@@ -85,12 +88,12 @@ func (r *Reporter) Report() {
 	if len(metrics) == 0 {
 		return
 	}
-	if err := r.sendMetrics(metrics); err != nil {
+	if err := r.sendMetrics(context.Background(), metrics); err != nil {
 		fmt.Println("Error sending metrics:", err)
 	}
 }
 
-func (r *Reporter) sendMetrics(metrics []model.Metric) error {
+func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
@@ -101,7 +104,8 @@ func (r *Reporter) sendMetrics(metrics []model.Metric) error {
 		return fmt.Errorf("error compress metrics: %v", err)
 	}
 
-	req := r.client.R()
+	req := r.client.R().
+		SetContext(ctx)
 	if len(r.secretKey) > 0 {
 		sign := checksum.Sign(jsonData, r.secretKey)
 		req.SetHeader("HashSHA256", hex.EncodeToString(sign))

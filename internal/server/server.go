@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/db"
@@ -50,6 +53,10 @@ func Run(config config.Config) {
 
 	var database *sql.DB
 	var metricsService *service.MetricsService
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if config.DatabaseDSN != "" {
 		var err error
 		database, err = db.NewDB(config.DatabaseDSN)
@@ -57,9 +64,9 @@ func Run(config config.Config) {
 			os.Exit(2)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		err = database.PingContext(ctx)
+		pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer pingCancel()
+		err = database.PingContext(pingCtx)
 		if err != nil {
 			logger.Log.Fatal("Error ping database", zap.Error(err))
 			os.Exit(3)
@@ -71,31 +78,54 @@ func Run(config config.Config) {
 			os.Exit(4)
 		}
 		defer database.Close()
-		storage := storage.NewDBStorage(database)
-		metricsService = service.NewMetricsService(storage, nil)
+		storageInstance := storage.NewDBStorage(database)
+		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
-		storage := storage.NewMemStorage()
-		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storage)
+		storageInstance := storage.NewMemStorage()
+		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
 		if config.Restore {
 			saver.Load()
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
 		saver.StartSync(ctx)
-		defer cancel()
-		metricsService = service.NewMetricsService(storage, saver)
+		metricsService = service.NewMetricsService(storageInstance, saver)
 	}
-	//TODO разобраться с Graceful Shutdown иначе это смысла не имеет
 
 	var r http.Handler = InitRouter(metricsService, database)
-	if (config.Key != "") {
+	if config.Key != "" {
 		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
 	}
 	gzipper := middleware.GZip(r)
-	logger := middleware.RequestLogger(gzipper)
+	requestLogger := middleware.RequestLogger(gzipper)
 
-	err := http.ListenAndServe(config.ServerAddress, logger)
-	if err != nil {
+	httpServer := &http.Server{
+		Addr:    config.ServerAddress,
+		Handler: requestLogger,
+	}
+
+	shutdownDone := make(chan struct{})
+	go func() {
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+		<-signalChan
+
+		logger.Log.Info("Shutdown signal received")
+		cancel()
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		err := httpServer.Shutdown(shutdownCtx)
+		if err != nil {
+			logger.Log.Error("Error during server shutdown", zap.Error(err))
+		}
+		close(shutdownDone)
+	}()
+
+	err := httpServer.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+
+	<-shutdownDone
+	logger.Log.Info("Server stopped")
 }
