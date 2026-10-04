@@ -24,8 +24,11 @@ type Reporter struct {
 	rateLimit      int
 }
 
+// Storage is a expanded storage interface fro agent.
 type Storage interface {
 	storage.Storage
+
+	// GetValuesAndClear returns all saved metrics and cleans the storage.
 	GetValuesAndClear() []model.Metric
 }
 
