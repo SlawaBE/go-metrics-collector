@@ -55,6 +55,11 @@ tasks:
     desc: Run tests
     cmds:
       - go test -v ./...
+  
+  coverage:
+    desc: Calculate test coverage
+    cmds:
+      - go test -cover ./...
 
   vet:
     desc: Run statictest
