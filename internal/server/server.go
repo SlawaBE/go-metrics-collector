@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/SlawaBE/go-metrics-collector/internal/db"
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
@@ -49,6 +51,13 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 }
 
 func Run(config config.Config) {
+	if config.ProfileEnabled {
+		go func() {
+			if err := http.ListenAndServe(":8085", nil); err != nil {
+				os.Exit(5)
+			}
+		}()
+	}
 	logger.Initialize("info")
 
 	var database *sql.DB
@@ -92,10 +101,14 @@ func Run(config config.Config) {
 	}
 
 	auditService := service.NewAuditService()
-	fileAuditSubscriber := service.NewFileAuditSubscriber(config.AuditFile)
-	httpAuditSubscriber := service.NewHTTPAuditSubscriber(config.AuditURL)
-	auditService.Subscribe(fileAuditSubscriber)
-	auditService.Subscribe(httpAuditSubscriber)
+	if config.AuditFile != "" {
+		fileAuditSubscriber := service.NewFileAuditSubscriber(config.AuditFile)
+		auditService.Subscribe(fileAuditSubscriber)
+	}
+	if config.AuditURL != "" {
+		httpAuditSubscriber := service.NewHTTPAuditSubscriber(config.AuditURL)
+		auditService.Subscribe(httpAuditSubscriber)
+	}
 
 	var r http.Handler = InitRouter(metricsService, database, auditService)
 	if config.Key != "" {

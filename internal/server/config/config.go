@@ -15,6 +15,7 @@ type Config struct {
 	Key             string `env:"KEY"`
 	AuditFile       string `env:"AUDIT_FILE"`
 	AuditURL        string `env:"AUDIT_URL"`
+	ProfileEnabled	bool `env:"PROFILE_ENABLED"`
 }
 
 func ReadConfig() (Config, error) {
@@ -28,6 +29,7 @@ func ReadConfig() (Config, error) {
 	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
 	flag.StringVar(&config.AuditFile, "audit-file", "", "file for writing audit event")
 	flag.StringVar(&config.AuditURL, "audit-url", "", "url for sending audit event")
+	flag.BoolVar(&config.ProfileEnabled, "p", false, "enable profiling")
 	flag.Parse()
 
 	err := env.Parse(&config)
