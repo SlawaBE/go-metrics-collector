@@ -21,10 +21,10 @@ func TestCheckSumMiddleware_RequestSignature(t *testing.T) {
 	})
 
 	tests := []struct {
-		name          string
-		body          []byte
-		signature     func() string
-		wantStatus    int
+		name       string
+		body       []byte
+		signature  func() string
+		wantStatus int
 	}{
 		{
 			name: "valid signature",

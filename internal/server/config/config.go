@@ -15,7 +15,7 @@ type Config struct {
 	Key             string `env:"KEY"`
 	AuditFile       string `env:"AUDIT_FILE"`
 	AuditURL        string `env:"AUDIT_URL"`
-	ProfileEnabled	bool `env:"PROFILE_ENABLED"`
+	ProfileEnabled  bool   `env:"PROFILE_ENABLED"`
 }
 
 func ReadConfig() (Config, error) {

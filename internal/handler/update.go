@@ -12,13 +12,13 @@ import (
 )
 
 type UpdateMetricHandler struct {
-	service *service.MetricsService
+	service        *service.MetricsService
 	auditPublisher service.AuditPublisher
 }
 
 func NewUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *UpdateMetricHandler {
 	return &UpdateMetricHandler{
-		service: service,
+		service:        service,
 		auditPublisher: auditPublisher,
 	}
 }
