@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -29,9 +30,7 @@ func (a *AuditService) Subscribe(subscriber AuditSubscriber) {
 }
 
 func (a *AuditService) SendMetric(ctx context.Context, ip string, metric model.Metric) {
-	metricNames := make([]string, 1)
-	metricNames[0] = metric.ID
-	a.notify(ctx, model.NewAuditEvent(ip, metricNames))
+	a.notify(ctx, model.NewAuditEvent(ip, []string{metric.ID}))
 }
 
 func (a *AuditService) SendMetrics(ctx context.Context, ip string, metrics []model.Metric) {
@@ -83,11 +82,30 @@ type HTTPAuditSubscriber struct {
 	client *http.Client
 }
 
+func auditTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          10,
+		MaxIdleConnsPerHost:   10,
+		MaxConnsPerHost:       10,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   3 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+}
+
 func NewHTTPAuditSubscriber(url string) *HTTPAuditSubscriber {
 	return &HTTPAuditSubscriber{
 		url: url,
 		client: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout:   5 * time.Second,
+			Transport: auditTransport(),
 		},
 	}
 }

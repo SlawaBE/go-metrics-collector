@@ -113,3 +113,61 @@ func TestGZip_DecompressRequestBody(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.JSONEq(t, string(raw), rec.Body.String())
 }
+
+func TestGZip_EmptyResponse(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		status      int
+	}{
+		{
+			name:        "error without body passes through",
+			contentType: "text/plain",
+			status:      http.StatusInternalServerError,
+		},
+		{
+			name:        "empty ok without content type passes through",
+			contentType: "",
+			status:      http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.contentType != "" {
+					w.Header().Set("Content-Type", tt.contentType)
+				}
+				w.WriteHeader(tt.status)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+
+			rec := httptest.NewRecorder()
+			GZip(handler).ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.status, rec.Code)
+			assert.Equal(t, "", rec.Header().Get("Content-Encoding"))
+			assert.Empty(t, rec.Body.Bytes())
+		})
+	}
+}
+
+func BenchmarkGZip(b *testing.B) {
+	body := `{"id":"name","type":"gauge","value":1.1}`
+	handler := GZip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+	}
+}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
@@ -40,5 +41,5 @@ func (h *ListMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		builder.WriteString("</li>")
 	}
 	builder.WriteString("</ul>")
-	w.Write([]byte(builder.String()))
+	io.WriteString(w, builder.String())
 }

@@ -42,3 +42,7 @@ git fetch template && git checkout template/v2 .github
 - **Clean Architecture**
 - **Hexagonal Architecture**
 - **Layered Architecture**
+
+## Результат оптимизации потребления памяти
+
+[Optimization Report](./optimization_report.md)
