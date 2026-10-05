@@ -23,7 +23,12 @@ func NewCheckSum(secretKey string) *CheckSum {
 
 type responseWriterWrapper struct {
 	http.ResponseWriter
-	body *bytes.Buffer
+	body   *bytes.Buffer
+	status int
+}
+
+func (ww *responseWriterWrapper) WriteHeader(statusCode int) {
+	ww.status = statusCode
 }
 
 func (ww *responseWriterWrapper) Write(data []byte) (int, error) {
@@ -66,6 +71,7 @@ func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 		ww := &responseWriterWrapper{
 			ResponseWriter: w,
 			body:           new(bytes.Buffer),
+			status:         http.StatusOK,
 		}
 
 		handler.ServeHTTP(ww, r)
@@ -74,6 +80,7 @@ func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 		respSig := checksum.Sign(response, c.secretKey)
 		w.Header().Set("HashSHA256", hex.EncodeToString(respSig))
 
+		w.WriteHeader(ww.status)
 		w.Write(response)
 	})
 }
