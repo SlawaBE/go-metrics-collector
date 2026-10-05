@@ -86,3 +86,14 @@ tasks:
       - task vet
       - task test
       - task autotest
+
+  fmt:
+    desc: Format
+    cmds:
+      - gofmt -w .
+      - goimports -w .
+
+  run-godoc:
+    desc: Run godoc
+    cmds:
+      - godoc -http=:8080

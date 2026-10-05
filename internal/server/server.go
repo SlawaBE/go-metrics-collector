@@ -1,3 +1,5 @@
+// Package server is responsible for initializing the HTTP router and starting
+// the metrics collection server.
 package server
 
 import (
@@ -24,6 +26,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// InitRouter builds the chi router with all HTTP endpoints of the server.
+//
+// Available endpoints:
+//   - GET  /                                   - list of all metrics (HTML);
+//   - POST /update/{type}/{name}/{value}        - update a metric via URL;
+//   - GET  /value/{type}/{name}                 - fetch a metric via URL;
+//   - POST /update                              - JSON update of a metric;
+//   - POST /value                               - JSON fetch of a metric;
+//   - POST /updates                             - JSON batch update;
+//   - GET  /ping                                - database connectivity check.
 func InitRouter(service *service.MetricsService, database *sql.DB, auditPublisher service.AuditPublisher) chi.Router {
 	r := chi.NewRouter()
 	updateHandler := handler.NewUpdateMetricHandler(service, auditPublisher)
@@ -50,6 +62,9 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 	return r
 }
 
+// Run starts the metrics server: initializes the storage (memory or database),
+// sets up auditing, attaches the middleware (signature, gzip, logging) and
+// listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) {
 	if config.ProfileEnabled {
 		go func() {

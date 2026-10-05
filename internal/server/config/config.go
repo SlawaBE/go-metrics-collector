@@ -1,3 +1,5 @@
+// Package config holds the metrics server configuration, populated from
+// command-line flags and environment variables.
 package config
 
 import (
@@ -6,18 +8,30 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// Config describes the metrics server startup parameters.
 type Config struct {
-	ServerAddress   string `env:"ADDRESS"`
-	StoreInterval   int    `env:"STORE_INTERVAL"`
+	// ServerAddress is the HTTP server address and port.
+	ServerAddress string `env:"ADDRESS"`
+	// StoreInterval is the interval (in seconds) for saving metrics to a file.
+	StoreInterval int `env:"STORE_INTERVAL"`
+	// FileStoragePath is the path to the file used for persisting metrics.
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
-	Key             string `env:"KEY"`
-	AuditFile       string `env:"AUDIT_FILE"`
-	AuditURL        string `env:"AUDIT_URL"`
-	ProfileEnabled  bool   `env:"PROFILE_ENABLED"`
+	// Restore indicates whether to restore metrics from the file on startup.
+	Restore bool `env:"RESTORE"`
+	// DatabaseDSN is the PostgreSQL connection string; when set, the DB is used.
+	DatabaseDSN string `env:"DATABASE_DSN"`
+	// Key is the secret key for signing and verifying HMAC SHA-256 requests.
+	Key string `env:"KEY"`
+	// AuditFile is the path to the file for writing audit events.
+	AuditFile string `env:"AUDIT_FILE"`
+	// AuditURL is the URL for sending audit events.
+	AuditURL string `env:"AUDIT_URL"`
+	// ProfileEnabled indicates whether pprof profiling is enabled.
+	ProfileEnabled bool `env:"PROFILE_ENABLED"`
 }
 
+// ReadConfig populates the configuration from command-line flags and
+// environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
 	var config Config
 

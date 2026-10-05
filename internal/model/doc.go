@@ -1,4 +1,2 @@
-/*
-The model package contains data models for interacting with the application.
-*/
+// Package model contains the domain types describing metrics and audit events.
 package model

@@ -15,24 +15,29 @@ import (
 	"go.uber.org/zap"
 )
 
+// AuditService distributes audit events to the registered subscribers.
 type AuditService struct {
 	subscribers []AuditSubscriber
 }
 
+// NewAuditService creates an audit service with no subscribers.
 func NewAuditService() *AuditService {
 	return &AuditService{
 		subscribers: make([]AuditSubscriber, 0),
 	}
 }
 
+// Subscribe registers a subscriber for audit events.
 func (a *AuditService) Subscribe(subscriber AuditSubscriber) {
 	a.subscribers = append(a.subscribers, subscriber)
 }
 
+// SendMetric publishes an audit event for a single metric.
 func (a *AuditService) SendMetric(ctx context.Context, ip string, metric model.Metric) {
 	a.notify(ctx, model.NewAuditEvent(ip, []string{metric.ID}))
 }
 
+// SendMetrics publishes an audit event for a set of metrics.
 func (a *AuditService) SendMetrics(ctx context.Context, ip string, metrics []model.Metric) {
 	metricNames := make([]string, len(metrics))
 	for i, metric := range metrics {
@@ -51,18 +56,23 @@ func (a *AuditService) notify(ctx context.Context, event model.AuditEvent) {
 	}
 }
 
+// FileAuditSubscriber writes audit events to a file in JSON format.
 type FileAuditSubscriber struct {
 	filePath string
 }
 
+// NewFileAuditSubscriber creates a subscriber that writes audit events to the
+// given file.
 func NewFileAuditSubscriber(path string) *FileAuditSubscriber {
 	return &FileAuditSubscriber{filePath: path}
 }
 
+// Name returns the subscriber name for logging.
 func (f *FileAuditSubscriber) Name() string {
 	return "FileAuditSubscriber"
 }
 
+// Notify appends an audit event to the file in JSON format.
 func (f *FileAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
 	file, err := os.OpenFile(f.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -77,6 +87,7 @@ func (f *FileAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent
 	return nil
 }
 
+// HTTPAuditSubscriber sends audit events to a remote HTTP endpoint.
 type HTTPAuditSubscriber struct {
 	url    string
 	client *http.Client
@@ -100,6 +111,8 @@ func auditTransport() *http.Transport {
 	}
 }
 
+// NewHTTPAuditSubscriber creates a subscriber that sends audit events to the
+// given URL via a POST request.
 func NewHTTPAuditSubscriber(url string) *HTTPAuditSubscriber {
 	return &HTTPAuditSubscriber{
 		url: url,
@@ -110,10 +123,12 @@ func NewHTTPAuditSubscriber(url string) *HTTPAuditSubscriber {
 	}
 }
 
+// Name returns the subscriber name for logging.
 func (h *HTTPAuditSubscriber) Name() string {
 	return "HttpSubscriber"
 }
 
+// Notify sends an audit event to the remote HTTP endpoint.
 func (h *HTTPAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
 	jsonData, err := json.Marshal(event)
 	if err != nil {

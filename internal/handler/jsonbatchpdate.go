@@ -11,11 +11,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// JSONBatchUpdateMetricsHandler handles batch updating of several metrics via
+// a JSON request: POST /updates.
 type JSONBatchUpdateMetricsHandler struct {
 	service        *service.MetricsService
 	auditPublisher service.AuditPublisher
 }
 
+// NewJSONBatchUpdateMetricsHandler creates a JSON handler for batch updating
+// metrics.
 func NewJSONBatchUpdateMetricsHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JSONBatchUpdateMetricsHandler {
 	return &JSONBatchUpdateMetricsHandler{
 		service:        service,

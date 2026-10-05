@@ -6,37 +6,31 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 )
 
-// FileMetricServer is an interface for synchronizing stored metrics to a file.
-//
-// It is used only when working with the application’s internal in‑memory storage.
+// FileMetricSaver defines the contract for synchronous and background
+// persistence of metrics to a file.
 type FileMetricSaver interface {
-	// Load loads metric values from a file when the application starts.
+	// Load loads metrics from a file into the storage.
 	Load() error
-
-	// SaveSync saves the values of all metrics from the storage in a file.
+	// SaveSync synchronously saves metrics to a file (if the interval is 0).
 	SaveSync() error
-
-	// StartSync initiates synchronization.
+	// StartSync starts background periodic persistence of metrics to a file.
 	StartSync(ctx context.Context)
 }
 
-// AuditSubscriber is an interface for listening to audit events and performing useful work when they are received.
+// AuditSubscriber receives and processes audit events.
 type AuditSubscriber interface {
-	// Notify using for processing audit event.
+	// Notify processes a single audit event.
 	Notify(ctx context.Context, event model.AuditEvent) error
-
-	// Name return name of subscriber. It is using for errors message in logs.
+	// Name returns the subscriber name for logging.
 	Name() string
 }
 
-// AuditPublisher is an interface for publishing audit events when metrics are received.
+// AuditPublisher publishes audit events to subscribers.
 type AuditPublisher interface {
-	// Subscribe subscribes for listening audit events
+	// Subscribe registers a subscriber for audit events.
 	Subscribe(subscriber AuditSubscriber)
-
-	// SendMetric notified all subscribers about one obtained metric
+	// SendMetric publishes an audit event for a single metric.
 	SendMetric(ctx context.Context, ip string, metric model.Metric)
-
-	// SendMetric notified all subscribers about many obtained metrics
+	// SendMetrics publishes an audit event for a set of metrics.
 	SendMetrics(ctx context.Context, ip string, metrics []model.Metric)
 }

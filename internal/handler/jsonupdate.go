@@ -11,11 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// JSONUpdateMetricHandler handles updating a metric via a JSON request:
+// POST /update.
 type JSONUpdateMetricHandler struct {
 	service        *service.MetricsService
 	auditPublisher service.AuditPublisher
 }
 
+// NewJSONUpdateMetricHandler creates a JSON handler for updating a metric.
 func NewJSONUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JSONUpdateMetricHandler {
 	return &JSONUpdateMetricHandler{
 		service:        service,

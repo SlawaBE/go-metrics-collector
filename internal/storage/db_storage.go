@@ -10,10 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// DBStorage is a metric storage backed by PostgreSQL. Updates run in
+// transactions (INSERT ... ON CONFLICT DO UPDATE) wrapped in retry.
 type DBStorage struct {
 	db *sql.DB
 }
 
+// NewDBStorage creates a metric storage using the given PostgreSQL connection.
 func NewDBStorage(db *sql.DB) *DBStorage {
 	return &DBStorage{
 		db: db,
@@ -31,6 +34,7 @@ const (
 						WHERE id = $1`
 )
 
+// UpdateMetric updates a single metric in a transaction with retry.
 func (s *DBStorage) UpdateMetric(ctx context.Context, metric model.Metric) error {
 	return retry.RetryWithBackoff(ctx, func() error {
 		tx, err := s.db.Begin()
@@ -61,6 +65,7 @@ func (s *DBStorage) UpdateMetric(ctx context.Context, metric model.Metric) error
 	})
 }
 
+// GetValues returns all metrics from the database.
 func (s *DBStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	metrics := make([]model.Metric, 0)
 	return metrics, retry.RetryWithBackoff(ctx, func() error {
@@ -88,6 +93,7 @@ func (s *DBStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	})
 }
 
+// GetMetric returns a metric from the database by identifier.
 func (s *DBStorage) GetMetric(ctx context.Context, id string) (*model.Metric, error) {
 	var metric model.Metric
 	err := retry.RetryWithBackoff(ctx, func() error {
@@ -104,6 +110,7 @@ func (s *DBStorage) GetMetric(ctx context.Context, id string) (*model.Metric, er
 	return &metric, nil
 }
 
+// UpdateAll batch updates a set of metrics in a single transaction with retry.
 func (s *DBStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error {
 	return retry.RetryWithBackoff(ctx, func() error {
 		tx, err := s.db.Begin()

@@ -16,6 +16,8 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+// Reporter periodically sends the accumulated metrics to the server in a batch
+// via POST /updates, using a pool of workers.
 type Reporter struct {
 	storage        Storage
 	reportInterval int
@@ -24,7 +26,9 @@ type Reporter struct {
 	rateLimit      int
 }
 
-// Storage is a expanded storage interface fro agent.
+// Storage defines the reporter's requirement on the storage: in addition to the
+// regular Storage operations, GetValuesAndClear is required to consume metrics
+// between reports.
 type Storage interface {
 	storage.Storage
 
@@ -32,8 +36,11 @@ type Storage interface {
 	GetValuesAndClear() []model.Metric
 }
 
+// retryIntervals holds increasing send retry intervals (in seconds).
 var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
+// NewReporter creates a reporter that sends metrics to the given address at the
+// given interval, signature key and worker limit.
 func NewReporter(storage Storage, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
 	return &Reporter{
 		storage:        storage,
@@ -44,6 +51,8 @@ func NewReporter(storage Storage, reportAddress string, reportInterval int, secr
 	}
 }
 
+// Run starts the metric sending loop to the server until the context is
+// cancelled.
 func (r *Reporter) Run(ctx context.Context) {
 	jobs := make(chan []model.Metric, r.rateLimit)
 	var wg sync.WaitGroup
@@ -86,6 +95,7 @@ func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
 	}
 }
 
+// Report consumes the accumulated metrics and sends them to the server once.
 func (r *Reporter) Report() {
 	metrics := r.storage.GetValuesAndClear()
 	if len(metrics) == 0 {

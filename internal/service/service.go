@@ -10,11 +10,15 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
+// MetricsService encapsulates the business logic for working with metrics
+// on top of a Storage implementation.
 type MetricsService struct {
 	storage storage.Storage
 	saver   FileMetricSaver
 }
 
+// NewMetricsService creates a metrics service backed by the given storage and
+// an optional file saver.
 func NewMetricsService(s storage.Storage, saver FileMetricSaver) *MetricsService {
 	return &MetricsService{
 		storage: s,
@@ -22,6 +26,8 @@ func NewMetricsService(s storage.Storage, saver FileMetricSaver) *MetricsService
 	}
 }
 
+// UpdateMetric updates a single metric and, when a saver is set, synchronously
+// persists the state to a file.
 func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) error {
 	if metric.ID == "" {
 		return errors.New("empty metric name")
@@ -33,6 +39,8 @@ func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) 
 	return err
 }
 
+// UpdateMetrics updates a set of metrics and, when a saver is set, synchronously
+// persists the state to a file.
 func (m *MetricsService) UpdateMetrics(ctx context.Context, metrics []model.Metric) error {
 	err := m.storage.UpdateAll(ctx, metrics)
 	if err == nil && m.saver != nil {
@@ -41,6 +49,8 @@ func (m *MetricsService) UpdateMetrics(ctx context.Context, metrics []model.Metr
 	return err
 }
 
+// GetMetric returns the metric matching the request; if the requested metric
+// type does not match the stored one, an error "not found" is returned.
 func (m *MetricsService) GetMetric(ctx context.Context, request model.MetricRequest) (*model.Metric, error) {
 	metric, err := m.storage.GetMetric(ctx, request.ID)
 	if err != nil || metric.MType != request.MType {
@@ -49,6 +59,7 @@ func (m *MetricsService) GetMetric(ctx context.Context, request model.MetricRequ
 	return metric, nil
 }
 
+// List returns a sorted list of string representations of all metrics.
 func (m *MetricsService) List(ctx context.Context) ([]string, error) {
 	list, err := m.storage.GetValues(ctx)
 	if err != nil {

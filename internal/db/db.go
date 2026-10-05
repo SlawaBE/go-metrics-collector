@@ -1,3 +1,5 @@
+// Package db handles establishing a PostgreSQL connection and running the
+// embedded migrations.
 package db
 
 import (
@@ -13,6 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewDB opens a PostgreSQL connection using the given DSN string.
 func NewDB(databaseDSN string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", databaseDSN)
 	if err != nil {
@@ -26,6 +29,7 @@ func NewDB(databaseDSN string) (*sql.DB, error) {
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
+// RunMigrations applies the embedded SQL migrations to the database connection.
 func RunMigrations(database *sql.DB, databaseDSN string) error {
 	srcDriver, err := iofs.New(migrationFiles, "migrations")
 	if err != nil {

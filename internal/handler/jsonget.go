@@ -10,10 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// JSONGetMetricHandler handles fetching a metric via a JSON request:
+// POST /value.
 type JSONGetMetricHandler struct {
 	service *service.MetricsService
 }
 
+// NewJSONGetMetricHandler creates a JSON handler for fetching a metric.
 func NewJSONGetMetricHandler(service *service.MetricsService) *JSONGetMetricHandler {
 	return &JSONGetMetricHandler{
 		service: service,

@@ -8,11 +8,14 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 )
 
+// MemStorage is a thread-safe in-memory metric storage based on a map.
+// Counter accumulates via +=, Gauge is overwritten.
 type MemStorage struct {
 	mutex   sync.RWMutex
 	metrics map[string]model.Metric
 }
 
+// NewMemStorage creates an empty in-memory metric storage.
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
 		mutex:   sync.RWMutex{},
@@ -20,6 +23,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
+// UpdateMetric updates a single metric.
 func (s *MemStorage) UpdateMetric(ctx context.Context, metric model.Metric) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -27,6 +31,7 @@ func (s *MemStorage) UpdateMetric(ctx context.Context, metric model.Metric) erro
 	return s.update(metric)
 }
 
+// UpdateAll batch updates a set of metrics under a single lock.
 func (s *MemStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -54,6 +59,7 @@ func (s *MemStorage) update(metric model.Metric) error {
 	return nil
 }
 
+// GetValues returns a slice with all metrics from the storage.
 func (s *MemStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	res := make([]model.Metric, 0, len(s.metrics))
 	s.mutex.RLock()
@@ -66,6 +72,8 @@ func (s *MemStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 	return res, nil
 }
 
+// GetValuesAndClear returns all metrics and clears the storage.
+// It is used by the agent to consume metrics between reports.
 func (s *MemStorage) GetValuesAndClear() []model.Metric {
 	res := make([]model.Metric, 0, len(s.metrics))
 	s.mutex.Lock()
@@ -79,6 +87,7 @@ func (s *MemStorage) GetValuesAndClear() []model.Metric {
 	return res
 }
 
+// GetMetric returns a metric by identifier.
 func (s *MemStorage) GetMetric(ctx context.Context, id string) (*model.Metric, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()

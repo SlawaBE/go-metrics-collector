@@ -11,10 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// CheckSum verifies the integrity of request bodies and signs responses using
+// HMAC SHA-256.
 type CheckSum struct {
 	secretKey []byte
 }
 
+// NewCheckSum creates a signature verification middleware with the given
+// secret key.
 func NewCheckSum(secretKey string) *CheckSum {
 	return &CheckSum{
 		secretKey: []byte(secretKey),
@@ -35,6 +39,8 @@ func (ww *responseWriterWrapper) Write(data []byte) (int, error) {
 	return ww.body.Write(data)
 }
 
+// CheckSumMiddleware wraps an HTTP handler: for requests (except GET) it
+// verifies the HashSHA256 header, and signs responses with the same key.
 func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

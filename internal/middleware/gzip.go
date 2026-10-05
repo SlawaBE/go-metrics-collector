@@ -81,6 +81,8 @@ func isCompressible(contentType string) bool {
 	return mediaType == "application/json" || mediaType == "text/html"
 }
 
+// GZip wraps an HTTP handler: decompresses compressed requests and compresses
+// responses when the client supports gzip.
 func GZip(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {

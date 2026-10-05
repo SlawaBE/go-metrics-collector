@@ -8,10 +8,12 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 )
 
+// ListMetricHandler handles rendering the list of all metrics as HTML: GET /.
 type ListMetricHandler struct {
 	service *service.MetricsService
 }
 
+// NewListMetricHandler creates a handler for the list of all metrics.
 func NewListMetricHandler(service *service.MetricsService) *ListMetricHandler {
 	return &ListMetricHandler{
 		service: service,

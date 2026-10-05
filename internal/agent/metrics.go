@@ -10,12 +10,14 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
-// Metrics is an interface for obtaining a list of collected metrics.
+// Metrics describes a set of metrics that can be converted into a list of
+// domain metrics.
 type Metrics interface {
 	convertToList() []model.Metric
 }
 
-// RuntimeMetrics is a set of runtime metrics.
+// RuntimeMetrics holds the metrics collected from runtime.MemStats plus the
+// additional RandomValue and PollCount metrics.
 type RuntimeMetrics struct {
 	// метрики из runtime
 	Alloc         float64
@@ -50,7 +52,7 @@ type RuntimeMetrics struct {
 	PollCount   int64
 }
 
-// GetRuntimeMetrics collect runtime metrics.
+// GetRuntimeMetrics captures the current runtime metrics of the process.
 func GetRuntimeMetrics() *RuntimeMetrics {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -132,14 +134,18 @@ func (m *RuntimeMetrics) convertToList() []model.Metric {
 	}
 }
 
-// GopsutilsMetrics is a set of gops metrics.
+// GopsutilsMetrics holds memory and CPU utilization metrics obtained via the
+// gopsutil library.
 type GopsutilsMetrics struct {
-	TotalMemory    *float64
-	FreeMemory     *float64
+	// TotalMemory is the total amount of memory.
+	TotalMemory *float64
+	// FreeMemory is the amount of free memory.
+	FreeMemory *float64
+	// CPUutilization is the utilization of each CPU in percent.
 	CPUutilization []float64
 }
 
-// GetGopsutilsMetrics collect runtime metrics.
+// GetGopsutilsMetrics captures the current memory and CPU metrics via gopsutil.
 func GetGopsutilsMetrics() *GopsutilsMetrics {
 	m := GopsutilsMetrics{}
 

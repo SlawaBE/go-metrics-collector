@@ -12,12 +12,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// JSONFileMetricSaver persists metrics to a file in JSON format, both
+// synchronously and with a configurable interval.
 type JSONFileMetricSaver struct {
 	interval int
 	fileName string
 	storage  storage.Storage
 }
 
+// NewJSONFileMetricSaver creates a metrics saver: with interval == 0 saving is
+// synchronous, with a positive interval it happens in the background via a ticker.
 func NewJSONFileMetricSaver(interval int, fileName string, storage storage.Storage) *JSONFileMetricSaver {
 	return &JSONFileMetricSaver{
 		interval: interval,
@@ -26,6 +30,7 @@ func NewJSONFileMetricSaver(interval int, fileName string, storage storage.Stora
 	}
 }
 
+// Load loads metrics from a file into the storage.
 func (m *JSONFileMetricSaver) Load() error {
 	data, err := os.ReadFile(m.fileName)
 	if err != nil {
@@ -61,6 +66,7 @@ func (m *JSONFileMetricSaver) save() error {
 	return os.WriteFile(m.fileName, data, 0644)
 }
 
+// SaveSync saves metrics to a file if the save interval is 0.
 func (m *JSONFileMetricSaver) SaveSync() error {
 	if m.interval == 0 {
 		return m.save()
@@ -68,6 +74,8 @@ func (m *JSONFileMetricSaver) SaveSync() error {
 	return nil
 }
 
+// StartSync starts background persistence of metrics to a file at the given
+// interval. No background saving is started for a non-positive interval.
 func (m *JSONFileMetricSaver) StartSync(ctx context.Context) {
 	if m.interval <= 0 {
 		return

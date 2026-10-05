@@ -8,10 +8,13 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
+// GetMetricHandler handles fetching a metric via the URL path:
+// GET /value/{type}/{name}.
 type GetMetricHandler struct {
 	service *service.MetricsService
 }
 
+// NewGetMetricHandler creates a handler for fetching a metric via the URL path.
 func NewGetMetricHandler(service *service.MetricsService) *GetMetricHandler {
 	return &GetMetricHandler{
 		service: service,
