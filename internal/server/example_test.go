@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -90,7 +91,7 @@ func ExampleInitRouter_jsonGet() {
 	metricsService := service.NewMetricsService(stor, nil)
 	audit := service.NewAuditService()
 
-	if err := stor.UpdateMetric(nil, model.NewGaugeMetric("HeapAlloc", 1024.5)); err != nil {
+	if err := stor.UpdateMetric(context.TODO(), model.NewGaugeMetric("HeapAlloc", 1024.5)); err != nil {
 		panic(err)
 	}
 
@@ -130,7 +131,7 @@ func ExampleInitRouter_list() {
 	metricsService := service.NewMetricsService(stor, nil)
 	audit := service.NewAuditService()
 
-	if err := stor.UpdateMetric(nil, model.NewCounterMetric("PollCount", 10)); err != nil {
+	if err := stor.UpdateMetric(context.TODO(), model.NewCounterMetric("PollCount", 10)); err != nil {
 		panic(err)
 	}
 
