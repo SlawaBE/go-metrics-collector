@@ -12,6 +12,8 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 )
 
+// Run starts the agent: launches the runtime poller, the gopsutil poller and
+// the reporter, which run until a shutdown signal is received.
 func Run(config config.Config) {
 	logger.Initialize("info")
 

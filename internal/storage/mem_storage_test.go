@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -122,4 +123,78 @@ func TestMemStorage_GetValuesAndClear(t *testing.T) {
 	remaining, err := s.GetValues(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, remaining)
+}
+
+func BenchmarkMemStorageUpdateMetric_Gauge(b *testing.B) {
+	s := NewMemStorage()
+	ctx := context.Background()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		metric := model.NewGaugeMetric("gauge-1", 1.5)
+		_ = s.UpdateMetric(ctx, metric)
+	}
+}
+
+func BenchmarkMemStorageUpdateMetric_Counter(b *testing.B) {
+	s := NewMemStorage()
+	ctx := context.Background()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		metric := model.NewCounterMetric("counter-1", int64(i))
+		_ = s.UpdateMetric(ctx, metric)
+	}
+}
+
+func BenchmarkMemStorageUpdateAll(b *testing.B) {
+	const batchSize = 100
+	metrics := make([]model.Metric, 0, batchSize)
+	for i := 0; i < batchSize; i++ {
+		metrics = append(metrics, model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i)))
+	}
+	s := NewMemStorage()
+	ctx := context.Background()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		err := s.UpdateAll(ctx, metrics)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMemStorageGetMetric(b *testing.B) {
+	s := NewMemStorage()
+	ctx := context.Background()
+	for i := 0; i < 1000; i++ {
+		_ = s.UpdateMetric(ctx, model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i)))
+	}
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := s.GetMetric(ctx, "gauge-500")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMemStorageGetValues(b *testing.B) {
+	s := NewMemStorage()
+	ctx := context.Background()
+	b.StopTimer()
+	for i := 0; i < 1000; i++ {
+		_ = s.UpdateMetric(ctx, model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i)))
+	}
+	b.StartTimer()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := s.GetValues(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

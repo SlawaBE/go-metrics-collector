@@ -1,3 +1,5 @@
+// Package gzip provides gzip compression/decompression utilities and HTTP
+// wrappers for writing and reading compressed bodies.
 package gzip
 
 import (
@@ -13,6 +15,8 @@ type compressWriter struct {
 	zw *gzip.Writer
 }
 
+// NewCompressWriter creates a wrapper over http.ResponseWriter that compresses
+// the written data.
 func NewCompressWriter(w http.ResponseWriter) *compressWriter {
 	return &compressWriter{
 		w:  w,
@@ -44,6 +48,8 @@ type compressReader struct {
 	zr *gzip.Reader
 }
 
+// NewCompressReader creates a wrapper over io.ReadCloser that decompresses
+// gzip data as it is read.
 func NewCompressReader(r io.ReadCloser) (*compressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -67,6 +73,8 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
+// Compress compresses the given data into gzip format and returns the result
+// as a byte slice.
 func Compress(data []byte) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 	w := gzip.NewWriter(buffer)

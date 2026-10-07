@@ -1,3 +1,5 @@
+// Package config holds the metrics server configuration, populated from
+// command-line flags and environment variables.
 package config
 
 import (
@@ -6,15 +8,34 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// Config describes the metrics server startup parameters.
 type Config struct {
-	ServerAddress   string `env:"ADDRESS"`
-	StoreInterval   int    `env:"STORE_INTERVAL"`
+	// ServerAddress is the HTTP server address and port.
+	ServerAddress string `env:"ADDRESS"`
+	// StoreInterval is the interval (in seconds) for saving metrics to a file.
+	StoreInterval int `env:"STORE_INTERVAL"`
+	// FileStoragePath is the path to the file used for persisting metrics.
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
-	Key             string `env:"KEY"`
+	// Restore indicates whether to restore metrics from the file on startup.
+	Restore bool `env:"RESTORE"`
+	// DatabaseDSN is the PostgreSQL connection string; when set, the DB is used.
+	DatabaseDSN string `env:"DATABASE_DSN"`
+	// Key is the secret key for signing and verifying HMAC SHA-256 requests.
+	Key string `env:"KEY"`
+	// AuditFile is the path to the file for writing audit events.
+	AuditFile string `env:"AUDIT_FILE"`
+	// AuditURL is the URL for sending audit events.
+	AuditURL string `env:"AUDIT_URL"`
+	// AuditQueueSize limits the size of the audit event queue.
+	AuditQueueSize int `env:"AUDIT_QUEUE_SIZE"`
+	// ProfileEnabled indicates whether pprof profiling is enabled.
+	ProfileEnabled bool `env:"PROFILE_ENABLED"`
+	// ProfileAddress is the HTTP profileing server address and port.
+	ProfileAddress string `env:"PROFILE_ADDRESS"`
 }
 
+// ReadConfig populates the configuration from command-line flags and
+// environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
 	var config Config
 
@@ -24,6 +45,11 @@ func ReadConfig() (Config, error) {
 	flag.BoolVar(&config.Restore, "r", false, "restore metric from file")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "database url")
 	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
+	flag.StringVar(&config.AuditFile, "audit-file", "", "file for writing audit event")
+	flag.StringVar(&config.AuditURL, "audit-url", "", "url for sending audit event")
+	flag.IntVar(&config.AuditQueueSize, "audit-queue-size", 100, "size of the audit event queue")
+	flag.BoolVar(&config.ProfileEnabled, "p", false, "enable profiling")
+	flag.StringVar(&config.ProfileAddress, "pa", "localhost:8085", "address and port to run profile server")
 	flag.Parse()
 
 	err := env.Parse(&config)

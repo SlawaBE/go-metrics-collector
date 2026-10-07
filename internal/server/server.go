@@ -1,3 +1,5 @@
+// Package server is responsible for initializing the HTTP router and starting
+// the metrics collection server.
 package server
 
 import (
@@ -11,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/SlawaBE/go-metrics-collector/internal/db"
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
@@ -22,14 +26,24 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
+// InitRouter builds the chi router with all HTTP endpoints of the server.
+//
+// Available endpoints:
+//   - GET  /                                   - list of all metrics (HTML);
+//   - POST /update/{type}/{name}/{value}        - update a metric via URL;
+//   - GET  /value/{type}/{name}                 - fetch a metric via URL;
+//   - POST /update                              - JSON update of a metric;
+//   - POST /value                               - JSON fetch of a metric;
+//   - POST /updates                             - JSON batch update;
+//   - GET  /ping                                - database connectivity check.
+func InitRouter(service *service.MetricsService, database *sql.DB, auditPublisher service.AuditPublisher) chi.Router {
 	r := chi.NewRouter()
-	updateHandler := handler.NewUpdateMetricHandler(service)
+	updateHandler := handler.NewUpdateMetricHandler(service, auditPublisher)
 	getHandler := handler.NewGetMetricHandler(service)
 	listHandler := handler.NewListMetricHandler(service)
-	jsonUpdateHandler := handler.NewJsonUpdateMetricHandler(service)
-	jsonGetMetricHandler := handler.NewJsonGetMetricHandler(service)
-	jsonBatchUpdatesHandler := handler.NewJsonBatchUpdateMetricsHandler(service)
+	jsonUpdateHandler := handler.NewJSONUpdateMetricHandler(service, auditPublisher)
+	jsonGetMetricHandler := handler.NewJSONGetMetricHandler(service)
+	jsonBatchUpdatesHandler := handler.NewJSONBatchUpdateMetricsHandler(service, auditPublisher)
 
 	r.Handle("GET /", listHandler)
 	r.Handle("POST /update/{type}/{name}/{value}", updateHandler)
@@ -48,8 +62,24 @@ func InitRouter(service *service.MetricsService, database *sql.DB) chi.Router {
 	return r
 }
 
+// Run starts the metrics server: initializes the storage (memory or database),
+// sets up auditing, attaches the middleware (signature, gzip, logging) and
+// listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) {
 	logger.Initialize("info")
+
+	var profileServer *http.Server
+	if config.ProfileEnabled {
+		profileServer = &http.Server{
+			Addr:    config.ProfileAddress,
+			Handler: http.DefaultServeMux,
+		}
+		go func() {
+			if err := profileServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log.Fatal("Error starting profile server", zap.Error(err))
+			}
+		}()
+	}
 
 	var database *sql.DB
 	var metricsService *service.MetricsService
@@ -82,7 +112,7 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
-		saver := service.NewJsonFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
+		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
 		if config.Restore {
 			saver.Load()
 		}
@@ -91,7 +121,23 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, saver)
 	}
 
-	var r http.Handler = InitRouter(metricsService, database)
+	auditService, auditErr := service.NewAuditService(config.AuditQueueSize)
+	if auditErr != nil {
+		logger.Log.Fatal("Error creating audit service", zap.Error(auditErr))
+	}
+	if config.AuditFile != "" {
+		fileAuditSubscriber, err := service.NewFileAuditSubscriber(config.AuditFile)
+		if err != nil {
+			logger.Log.Fatal("Error creating file audit subscriber", zap.Error(err))
+		}
+		auditService.Subscribe(fileAuditSubscriber)
+	}
+	if config.AuditURL != "" {
+		httpAuditSubscriber := service.NewHTTPAuditSubscriber(config.AuditURL)
+		auditService.Subscribe(httpAuditSubscriber)
+	}
+
+	var r http.Handler = InitRouter(metricsService, database, auditService)
 	if config.Key != "" {
 		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
 	}
@@ -114,10 +160,15 @@ func Run(config config.Config) {
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
-		err := httpServer.Shutdown(shutdownCtx)
-		if err != nil {
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			logger.Log.Error("Error during server shutdown", zap.Error(err))
 		}
+		if profileServer != nil {
+			if err := profileServer.Shutdown(shutdownCtx); err != nil {
+				logger.Log.Error("Error during profile server shutdown", zap.Error(err))
+			}
+		}
+		auditService.Shutdown()
 		close(shutdownDone)
 	}()
 

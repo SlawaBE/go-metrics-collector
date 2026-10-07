@@ -10,17 +10,20 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonGetMetricHandler struct {
+// JSONGetMetricHandler handles fetching a metric via a JSON request:
+// POST /value.
+type JSONGetMetricHandler struct {
 	service *service.MetricsService
 }
 
-func NewJsonGetMetricHandler(service *service.MetricsService) *JsonGetMetricHandler {
-	return &JsonGetMetricHandler{
+// NewJSONGetMetricHandler creates a JSON handler for fetching a metric.
+func NewJSONGetMetricHandler(service *service.MetricsService) *JSONGetMetricHandler {
+	return &JSONGetMetricHandler{
 		service: service,
 	}
 }
 
-func (h *JsonGetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JSONGetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {

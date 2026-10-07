@@ -10,13 +10,18 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 )
 
+// UpdateMetricHandler handles updating a metric via the URL path:
+// POST /update/{type}/{name}/{value}.
 type UpdateMetricHandler struct {
-	service *service.MetricsService
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewUpdateMetricHandler(service *service.MetricsService) *UpdateMetricHandler {
+// NewUpdateMetricHandler creates a handler for updating a metric via the URL path.
+func NewUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *UpdateMetricHandler {
 	return &UpdateMetricHandler{
-		service: service,
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
@@ -44,9 +49,11 @@ func (h *UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 
 	err = h.service.UpdateMetric(r.Context(), *metric)
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		h.auditPublisher.SendMetric(r.RemoteAddr, *metric)
 		w.WriteHeader(http.StatusOK)
 	}
 }

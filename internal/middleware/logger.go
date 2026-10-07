@@ -25,6 +25,8 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// RequestLogger logs each HTTP request: URI, method, duration, response code
+// and body size.
 func RequestLogger(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

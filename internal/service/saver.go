@@ -12,21 +12,26 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonFileMetricSaver struct {
+// JSONFileMetricSaver persists metrics to a file in JSON format, both
+// synchronously and with a configurable interval.
+type JSONFileMetricSaver struct {
 	interval int
 	fileName string
 	storage  storage.Storage
 }
 
-func NewJsonFileMetricSaver(interval int, fileName string, storage storage.Storage) *JsonFileMetricSaver {
-	return &JsonFileMetricSaver{
+// NewJSONFileMetricSaver creates a metrics saver: with interval == 0 saving is
+// synchronous, with a positive interval it happens in the background via a ticker.
+func NewJSONFileMetricSaver(interval int, fileName string, storage storage.Storage) *JSONFileMetricSaver {
+	return &JSONFileMetricSaver{
 		interval: interval,
 		fileName: fileName,
 		storage:  storage,
 	}
 }
 
-func (m *JsonFileMetricSaver) Load() error {
+// Load loads metrics from a file into the storage.
+func (m *JSONFileMetricSaver) Load() error {
 	data, err := os.ReadFile(m.fileName)
 	if err != nil {
 		logger.Log.Error("Error loading metrics", zap.Error(err))
@@ -46,7 +51,7 @@ func (m *JsonFileMetricSaver) Load() error {
 	return nil
 }
 
-func (m *JsonFileMetricSaver) save() error {
+func (m *JSONFileMetricSaver) save() error {
 	list, err := m.storage.GetValues(context.Background())
 	if err != nil {
 		logger.Log.Error("Error saving metrics", zap.Error(err))
@@ -61,14 +66,17 @@ func (m *JsonFileMetricSaver) save() error {
 	return os.WriteFile(m.fileName, data, 0644)
 }
 
-func (m *JsonFileMetricSaver) SaveSync() error {
+// SaveSync saves metrics to a file if the save interval is 0.
+func (m *JSONFileMetricSaver) SaveSync() error {
 	if m.interval == 0 {
 		return m.save()
 	}
 	return nil
 }
 
-func (m *JsonFileMetricSaver) StartSync(ctx context.Context) {
+// StartSync starts background persistence of metrics to a file at the given
+// interval. No background saving is started for a non-positive interval.
+func (m *JSONFileMetricSaver) StartSync(ctx context.Context) {
 	if m.interval <= 0 {
 		return
 	}

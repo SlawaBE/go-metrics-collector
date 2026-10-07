@@ -10,17 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonBatchUpdateMetricsHandler struct {
-	service *service.MetricsService
+// JSONBatchUpdateMetricsHandler handles batch updating of several metrics via
+// a JSON request: POST /updates.
+type JSONBatchUpdateMetricsHandler struct {
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewJsonBatchUpdateMetricsHandler(service *service.MetricsService) *JsonBatchUpdateMetricsHandler {
-	return &JsonBatchUpdateMetricsHandler{
-		service: service,
+// NewJSONBatchUpdateMetricsHandler creates a JSON handler for batch updating
+// metrics.
+func NewJSONBatchUpdateMetricsHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JSONBatchUpdateMetricsHandler {
+	return &JSONBatchUpdateMetricsHandler{
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
-func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JSONBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -40,7 +46,7 @@ func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	
+
 	for _, m := range metrics {
 		if m.ID == "" {
 			w.WriteHeader(http.StatusNotFound)
@@ -49,7 +55,7 @@ func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		if m.MType != model.Counter && m.MType != model.Gauge {
 			w.WriteHeader(http.StatusBadRequest)
 			return
-		} 
+		}
 	}
 
 	err := h.service.UpdateMetrics(r.Context(), metrics)
@@ -57,6 +63,7 @@ func (h *JsonBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		h.auditPublisher.SendMetrics(r.RemoteAddr, metrics)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("{}"))
 	}

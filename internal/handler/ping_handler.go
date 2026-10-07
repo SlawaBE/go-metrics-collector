@@ -9,10 +9,12 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/retry"
 )
 
+// PingHandler handles checking database availability: GET /ping.
 type PingHandler struct {
 	db *sql.DB
 }
 
+// NewPingHandler creates a handler for checking database availability.
 func NewPingHandler(db *sql.DB) *PingHandler {
 	return &PingHandler{
 		db: db,

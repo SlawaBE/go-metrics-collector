@@ -10,10 +10,14 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+// Metrics describes a set of metrics that can be converted into a list of
+// domain metrics.
 type Metrics interface {
 	convertToList() []model.Metric
 }
 
+// RuntimeMetrics holds the metrics collected from runtime.MemStats plus the
+// additional RandomValue and PollCount metrics.
 type RuntimeMetrics struct {
 	// метрики из runtime
 	Alloc         float64
@@ -48,6 +52,7 @@ type RuntimeMetrics struct {
 	PollCount   int64
 }
 
+// GetRuntimeMetrics captures the current runtime metrics of the process.
 func GetRuntimeMetrics() *RuntimeMetrics {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -129,12 +134,18 @@ func (m *RuntimeMetrics) convertToList() []model.Metric {
 	}
 }
 
+// GopsutilsMetrics holds memory and CPU utilization metrics obtained via the
+// gopsutil library.
 type GopsutilsMetrics struct {
-	TotalMemory    *float64
-	FreeMemory     *float64
-	CPUutilization []float64
+	// TotalMemory is the total amount of memory.
+	TotalMemory *float64
+	// FreeMemory is the amount of free memory.
+	FreeMemory *float64
+	// CPUUtilization is the utilization of each CPU in percent.
+	CPUUtilization []float64
 }
 
+// GetGopsutilsMetrics captures the current memory and CPU metrics via gopsutil.
 func GetGopsutilsMetrics() *GopsutilsMetrics {
 	m := GopsutilsMetrics{}
 
@@ -146,7 +157,7 @@ func GetGopsutilsMetrics() *GopsutilsMetrics {
 		m.FreeMemory = new(float64(memoryStat.Free))
 	}
 
-	m.CPUutilization, err = cpu.Percent(0, true)
+	m.CPUUtilization, err = cpu.Percent(0, true)
 	if err != nil {
 		fmt.Println("failed read CPU utilization")
 	}
@@ -163,11 +174,11 @@ func (m *GopsutilsMetrics) convertToList() []model.Metric {
 		list = append(list, model.NewGaugeMetric("TotalMemory", *m.TotalMemory))
 	}
 
-	if m.CPUutilization != nil {
-		for numCpu, percentage := range m.CPUutilization {
-			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCpu+1), percentage))
+	if m.CPUUtilization != nil {
+		for numCPU, percentage := range m.CPUUtilization {
+			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUUtilization%d", numCPU+1), percentage))
 		}
-	}	
+	}
 
 	return list
 }

@@ -1,16 +1,19 @@
 package handler
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 )
 
+// ListMetricHandler handles rendering the list of all metrics as HTML: GET /.
 type ListMetricHandler struct {
 	service *service.MetricsService
 }
 
+// NewListMetricHandler creates a handler for the list of all metrics.
 func NewListMetricHandler(service *service.MetricsService) *ListMetricHandler {
 	return &ListMetricHandler{
 		service: service,
@@ -40,5 +43,5 @@ func (h *ListMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		builder.WriteString("</li>")
 	}
 	builder.WriteString("</ul>")
-	w.Write([]byte(builder.String()))
+	io.WriteString(w, builder.String())
 }

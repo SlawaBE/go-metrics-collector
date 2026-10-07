@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -123,4 +124,58 @@ func TestMetricsService_WithoutSaver(t *testing.T) {
 
 	err := svc.UpdateMetric(context.Background(), model.NewCounterMetric("counter-1", 10))
 	require.NoError(t, err, "a nil saver must not panic")
+}
+
+func BenchmarkMetricsService_UpdateMetric(b *testing.B) {
+	svc := NewMetricsService(storage.NewMemStorage(), nil)
+	ctx := context.Background()
+	metric := model.NewGaugeMetric("gauge-1", 1.5)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if err := svc.UpdateMetric(ctx, metric); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMetricsService_UpdateMetrics(b *testing.B) {
+	svc := NewMetricsService(storage.NewMemStorage(), nil)
+	ctx := context.Background()
+	const batchSize = 100
+	metrics := make([]model.Metric, 0, batchSize)
+	for i := 0; i < batchSize; i++ {
+		metrics = append(metrics, model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i)))
+	}
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if err := svc.UpdateMetrics(ctx, metrics); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMetricsService_List(b *testing.B) {
+	for _, count := range []int{100, 1000, 10000} {
+		b.Run(fmt.Sprintf("metrics=%d", count), func(b *testing.B) {
+			stor := storage.NewMemStorage()
+			ctx := context.Background()
+			for i := 0; i < count; i++ {
+				metric := model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i))
+				if err := stor.UpdateMetric(ctx, metric); err != nil {
+					b.Fatal(err)
+				}
+			}
+			svc := NewMetricsService(stor, nil)
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				if _, err := svc.List(ctx); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }

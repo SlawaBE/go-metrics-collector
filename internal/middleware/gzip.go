@@ -1,36 +1,94 @@
 package middleware
 
 import (
-	"bytes"
+	"compress/gzip"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
+	"sync"
 
-	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
+	internalgzip "github.com/SlawaBE/go-metrics-collector/internal/gzip"
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
+	"go.uber.org/zap"
 )
 
-type responseRecorder struct {
+var gzipWriterPool = sync.Pool{
+	New: func() any {
+		w, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+		return w
+	},
+}
+
+type gzipResponseWriter struct {
 	http.ResponseWriter
-	status int
-	body   bytes.Buffer
+	compress bool
+	zw       *gzip.Writer
+	started  bool
 }
 
-func (rr *responseRecorder) Header() http.Header {
-	return rr.ResponseWriter.Header()
+func newGzipResponseWriter(w http.ResponseWriter) *gzipResponseWriter {
+	return &gzipResponseWriter{ResponseWriter: w}
 }
 
-func (rr *responseRecorder) Write(b []byte) (int, error) {
-	return rr.body.Write(b)
+func (rw *gzipResponseWriter) start() {
+	if rw.started {
+		return
+	}
+	rw.started = true
+
+	if isCompressible(rw.Header().Get("Content-Type")) {
+		rw.compress = true
+		rw.Header().Set("Content-Encoding", "gzip")
+		rw.Header().Del("Content-Length")
+		rw.zw = gzipWriterPool.Get().(*gzip.Writer)
+		rw.zw.Reset(rw.ResponseWriter)
+	}
 }
 
-func (rr *responseRecorder) WriteHeader(statusCode int) {
-	rr.status = statusCode
+func (rw *gzipResponseWriter) WriteHeader(statusCode int) {
+	if rw.started {
+		return
+	}
+	rw.start()
+	rw.ResponseWriter.WriteHeader(statusCode)
 }
 
+func (rw *gzipResponseWriter) Write(b []byte) (int, error) {
+	rw.start()
+	if rw.compress {
+		return rw.zw.Write(b)
+	}
+	return rw.ResponseWriter.Write(b)
+}
+
+func (rw *gzipResponseWriter) Close() error {
+	if rw.zw == nil {
+		return nil
+	}
+	err := rw.zw.Close()
+	gzipWriterPool.Put(rw.zw)
+	rw.zw = nil
+	return err
+}
+
+func isCompressible(contentType string) bool {
+	if contentType == "" {
+		return false
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return false
+	}
+	return mediaType == "application/json" || mediaType == "text/html"
+}
+
+// GZip wraps an HTTP handler: decompresses compressed requests and compresses
+// responses when the client supports gzip.
 func GZip(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-			gzipReader, err := gzip.NewCompressReader(r.Body)
+			gzipReader, err := internalgzip.NewCompressReader(r.Body)
 			if err != nil {
 				http.Error(w, "Failed to decompress request body", http.StatusBadRequest)
 				return
@@ -44,35 +102,12 @@ func GZip(handler http.Handler) http.Handler {
 			return
 		}
 
-		recorder := &responseRecorder{
-			ResponseWriter: w,
-			status:         http.StatusOK,
-		}
-		handler.ServeHTTP(recorder, r)
-
-		if recorder.body.Len() == 0 {
-			w.WriteHeader(recorder.status)
-			return
-		}
-
-		contentType := recorder.Header().Get("Content-Type")
-		if strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html") {
-			gzipWriter := gzip.NewCompressWriter(w)
-			defer gzipWriter.Close()
-
-			gzipWriter.WriteHeader(recorder.status)
-
-			_, err := gzipWriter.Write(recorder.body.Bytes())
-			if err != nil {
-				http.Error(w, "failed to compres response", http.StatusInternalServerError)
+		rw := newGzipResponseWriter(w)
+		handler.ServeHTTP(rw, r)
+		if rw.zw != nil {
+			if err := rw.Close(); err != nil {
+				logger.Log.Error("failed to compress response", zap.Error(err))
 			}
-			return
-		}
-
-		w.WriteHeader(recorder.status)
-		_, err := w.Write(recorder.body.Bytes())
-		if err != nil {
-			http.Error(w, "failed to write response", http.StatusInternalServerError)
 		}
 	})
 }

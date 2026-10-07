@@ -10,17 +10,22 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonUpdateMetricHandler struct {
-	service *service.MetricsService
+// JSONUpdateMetricHandler handles updating a metric via a JSON request:
+// POST /update.
+type JSONUpdateMetricHandler struct {
+	service        *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewJsonUpdateMetricHandler(service *service.MetricsService) *JsonUpdateMetricHandler {
-	return &JsonUpdateMetricHandler{
-		service: service,
+// NewJSONUpdateMetricHandler creates a JSON handler for updating a metric.
+func NewJSONUpdateMetricHandler(service *service.MetricsService, auditPublisher service.AuditPublisher) *JSONUpdateMetricHandler {
+	return &JSONUpdateMetricHandler{
+		service:        service,
+		auditPublisher: auditPublisher,
 	}
 }
 
-func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JSONUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -51,6 +56,7 @@ func (h *JsonUpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		h.auditPublisher.SendMetric(r.RemoteAddr, metric)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("{}"))
 	}
