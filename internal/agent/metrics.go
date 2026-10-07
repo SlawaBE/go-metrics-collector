@@ -141,8 +141,8 @@ type GopsutilsMetrics struct {
 	TotalMemory *float64
 	// FreeMemory is the amount of free memory.
 	FreeMemory *float64
-	// CPUutilization is the utilization of each CPU in percent.
-	CPUutilization []float64
+	// CPUUtilization is the utilization of each CPU in percent.
+	CPUUtilization []float64
 }
 
 // GetGopsutilsMetrics captures the current memory and CPU metrics via gopsutil.
@@ -157,7 +157,7 @@ func GetGopsutilsMetrics() *GopsutilsMetrics {
 		m.FreeMemory = new(float64(memoryStat.Free))
 	}
 
-	m.CPUutilization, err = cpu.Percent(0, true)
+	m.CPUUtilization, err = cpu.Percent(0, true)
 	if err != nil {
 		fmt.Println("failed read CPU utilization")
 	}
@@ -174,9 +174,9 @@ func (m *GopsutilsMetrics) convertToList() []model.Metric {
 		list = append(list, model.NewGaugeMetric("TotalMemory", *m.TotalMemory))
 	}
 
-	if m.CPUutilization != nil {
-		for numCPU, percentage := range m.CPUutilization {
-			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUutilization%d", numCPU+1), percentage))
+	if m.CPUUtilization != nil {
+		for numCPU, percentage := range m.CPUUtilization {
+			list = append(list, model.NewGaugeMetric(fmt.Sprintf("CPUUtilization%d", numCPU+1), percentage))
 		}
 	}
 

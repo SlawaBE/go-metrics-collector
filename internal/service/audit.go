@@ -2,69 +2,209 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 	"go.uber.org/zap"
 )
 
-// AuditService distributes audit events to the registered subscribers.
+// AuditService asynchronously delivers audit events to registered subscribers.
+//
+// All subscribers must be registered before the first event is published.
+// Events are buffered in an internal queue. If the queue is full, new events
+// are dropped.
+//
+// Shutdown drains all queued events before closing the registered subscribers.
 type AuditService struct {
 	subscribers []AuditSubscriber
+	events      chan model.AuditEvent
+
+	wg        sync.WaitGroup
+	mu        sync.RWMutex
+	closed    bool
+	closeOnce sync.Once
 }
 
-// NewAuditService creates an audit service with no subscribers.
-func NewAuditService() *AuditService {
-	return &AuditService{
-		subscribers: make([]AuditSubscriber, 0),
+// NewAuditService creates an AuditService with the specified event queue size.
+//
+// queueSize must be greater than zero.
+func NewAuditService(queueSize int) (*AuditService, error) {
+	if queueSize <= 0 {
+		return nil, errors.New("audit queue size must be greater than zero")
 	}
+
+	service := &AuditService{
+		subscribers: make([]AuditSubscriber, 0),
+		events:      make(chan model.AuditEvent, queueSize),
+	}
+
+	service.wg.Add(1)
+	go service.run()
+
+	return service, nil
 }
 
 // Subscribe registers a subscriber for audit events.
+//
+// All subscribers must be registered before the first event is published.
 func (a *AuditService) Subscribe(subscriber AuditSubscriber) {
+	if subscriber == nil {
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.closed {
+		return
+	}
+
 	a.subscribers = append(a.subscribers, subscriber)
 }
 
 // SendMetric publishes an audit event for a single metric.
-func (a *AuditService) SendMetric(ctx context.Context, ip string, metric model.Metric) {
-	a.notify(ctx, model.NewAuditEvent(ip, []string{metric.ID}))
+//
+// The event is dropped if the audit queue is full or the service has already
+// been shut down.
+func (a *AuditService) SendMetric(address string, metric model.Metric) {
+	ip := a.extractIP(address)
+
+	a.dispatch(model.NewAuditEvent(
+		ip,
+		[]string{metric.ID},
+	))
 }
 
-// SendMetrics publishes an audit event for a set of metrics.
-func (a *AuditService) SendMetrics(ctx context.Context, ip string, metrics []model.Metric) {
+// SendMetrics publishes an audit event for multiple metrics.
+//
+// The event is dropped if the audit queue is full or the service has already
+// been shut down.
+func (a *AuditService) SendMetrics(address string, metrics []model.Metric) {
+	ip := a.extractIP(address)
+
 	metricNames := make([]string, len(metrics))
 	for i, metric := range metrics {
 		metricNames[i] = metric.ID
 	}
-	a.notify(ctx, model.NewAuditEvent(ip, metricNames))
+
+	a.dispatch(model.NewAuditEvent(ip, metricNames))
 }
 
-func (a *AuditService) notify(ctx context.Context, event model.AuditEvent) {
-	logger.Log.Info("Send audit event", zap.Any("event", event))
+// Shutdown stops accepting new audit events, drains the event queue, and
+// closes all registered subscribers.
+//
+// Shutdown is safe to call multiple times.
+func (a *AuditService) Shutdown() {
+	a.closeOnce.Do(func() {
+		a.mu.Lock()
+		a.closed = true
+		close(a.events)
+		a.mu.Unlock()
+
+		a.wg.Wait()
+	})
+}
+
+func (a *AuditService) dispatch(event model.AuditEvent) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	if a.closed {
+		logger.Log.Warn(
+			"Audit service is shut down, dropping event",
+			zap.Any("event", event),
+		)
+		return
+	}
+
+	select {
+	case a.events <- event:
+	default:
+		logger.Log.Warn(
+			"Audit queue is full, dropping event",
+			zap.Any("event", event),
+		)
+	}
+}
+
+func (a *AuditService) run() {
+	defer a.wg.Done()
+
+	for event := range a.events {
+		a.notifySubscribers(event)
+	}
+
+	a.closeSubscribers()
+}
+
+func (a *AuditService) notifySubscribers(event model.AuditEvent) {
+	logger.Log.Info(
+		"Sending audit event",
+		zap.Any("event", event),
+	)
+
 	for _, subscriber := range a.subscribers {
-		err := subscriber.Notify(ctx, event)
-		if err != nil {
-			logger.Log.Error("Error send audit event", zap.String("audit_notifier", subscriber.Name()), zap.Error(err))
+		if err := subscriber.Notify(event); err != nil {
+			logger.Log.Error(
+				"Failed to notify audit subscriber",
+				zap.String("audit_subscriber", subscriber.Name()),
+				zap.Error(err),
+			)
 		}
 	}
 }
 
-// FileAuditSubscriber writes audit events to a file in JSON format.
+func (a *AuditService) closeSubscribers() {
+	for _, subscriber := range a.subscribers {
+		if err := subscriber.Close(); err != nil {
+			logger.Log.Error(
+				"Failed to close audit subscriber",
+				zap.String("audit_subscriber", subscriber.Name()),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+func (a *AuditService) extractIP(address string) string {
+	ip, err := utils.GetIPFromAddress(address)
+	if err != nil {
+		logger.Log.Warn(
+			"Failed to extract IP from remote address",
+			zap.String("address", address),
+			zap.Error(err),
+		)
+		return ""
+	}
+
+	return ip
+}
+
+// FileAuditSubscriber writes audit events to a file in JSON format. The file is
+// opened once at construction and appended to on every Notify call until Close
+// is invoked.
 type FileAuditSubscriber struct {
-	filePath string
+	file *os.File
 }
 
 // NewFileAuditSubscriber creates a subscriber that writes audit events to the
-// given file.
-func NewFileAuditSubscriber(path string) *FileAuditSubscriber {
-	return &FileAuditSubscriber{filePath: path}
+// given file, opening the file in append mode. The returned subscriber must be
+// closed via Close when it is no longer needed.
+func NewFileAuditSubscriber(path string) (*FileAuditSubscriber, error) {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	return &FileAuditSubscriber{file: file}, nil
 }
 
 // Name returns the subscriber name for logging.
@@ -72,15 +212,21 @@ func (f *FileAuditSubscriber) Name() string {
 	return "FileAuditSubscriber"
 }
 
-// Notify appends an audit event to the file in JSON format.
-func (f *FileAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
-	file, err := os.OpenFile(f.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
+// Close flushes and closes the underlying file. It must be called when the
+// subscriber is no longer needed to ensure all events are written to disk.
+func (f *FileAuditSubscriber) Close() error {
+	if err := f.file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync audit file: %w", err)
 	}
-	defer file.Close()
+	if err := f.file.Close(); err != nil {
+		return fmt.Errorf("failed to close audit file: %w", err)
+	}
+	return nil
+}
 
-	if err := json.NewEncoder(file).Encode(event); err != nil {
+// Notify appends an audit event to the file in JSON format.
+func (f *FileAuditSubscriber) Notify(event model.AuditEvent) error {
+	if err := json.NewEncoder(f.file).Encode(event); err != nil {
 		return fmt.Errorf("failed to encode json to file: %w", err)
 	}
 
@@ -128,14 +274,20 @@ func (h *HTTPAuditSubscriber) Name() string {
 	return "HttpSubscriber"
 }
 
+// Close closes idle connections held by the underlying HTTP client.
+func (h *HTTPAuditSubscriber) Close() error {
+	h.client.CloseIdleConnections()
+	return nil
+}
+
 // Notify sends an audit event to the remote HTTP endpoint.
-func (h *HTTPAuditSubscriber) Notify(ctx context.Context, event model.AuditEvent) error {
+func (h *HTTPAuditSubscriber) Notify(event model.AuditEvent) error {
 	jsonData, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, h.url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

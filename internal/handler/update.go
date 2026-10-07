@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
@@ -51,11 +50,10 @@ func (h *UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	err = h.service.UpdateMetric(r.Context(), *metric)
 
-	h.auditPublisher.SendMetric(r.Context(), strings.Split(r.RemoteAddr, ":")[0], *metric)
-
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		h.auditPublisher.SendMetric(r.RemoteAddr, *metric)
 		w.WriteHeader(http.StatusOK)
 	}
 }

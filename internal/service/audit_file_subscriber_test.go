@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -14,10 +13,12 @@ import (
 
 func TestFileAuditSubscriber_WritesEvent(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
-	sub := NewFileAuditSubscriber(path)
+	sub, err := NewFileAuditSubscriber(path)
+	require.NoError(t, err)
+	defer sub.Close()
 
 	event := model.NewAuditEvent("192.168.1.1", []string{"counter-1"})
-	require.NoError(t, sub.Notify(context.Background(), event))
+	require.NoError(t, sub.Notify(event))
 
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
@@ -30,11 +31,13 @@ func TestFileAuditSubscriber_WritesEvent(t *testing.T) {
 
 func TestFileAuditSubscriber_Appends(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
-	sub := NewFileAuditSubscriber(path)
+	sub, err := NewFileAuditSubscriber(path)
+	require.NoError(t, err)
+	defer sub.Close()
 
-	event := model.NewAuditEvent("192.168.1.1", []string{"a"})
-	require.NoError(t, sub.Notify(context.Background(), event))
-	require.NoError(t, sub.Notify(context.Background(), event))
+	event := model.NewAuditEvent("192.168.1.1", []string{"append"})
+	require.NoError(t, sub.Notify(event))
+	require.NoError(t, sub.Notify(event))
 
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
@@ -43,10 +46,23 @@ func TestFileAuditSubscriber_Appends(t *testing.T) {
 }
 
 func TestFileAuditSubscriber_InvalidPath(t *testing.T) {
-	sub := NewFileAuditSubscriber(filepath.Join(t.TempDir(), "no-such-dir", "x.log"))
-
-	err := sub.Notify(context.Background(), model.NewAuditEvent("ip", []string{"m"}))
+	_, err := NewFileAuditSubscriber(filepath.Join(t.TempDir(), "no-such-dir", "x.log"))
 	assert.Error(t, err)
+}
+
+func TestFileAuditSubscriber_Close(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit.log")
+	sub, err := NewFileAuditSubscriber(path)
+	require.NoError(t, err)
+
+	event := model.NewAuditEvent("192.168.1.1", []string{"close"})
+	require.NoError(t, sub.Notify(event))
+
+	require.NoError(t, sub.Close())
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, 1, bytesCountNewlines(data))
 }
 
 func bytesCountNewlines(data []byte) int {

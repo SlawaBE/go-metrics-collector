@@ -29,3 +29,30 @@ func TestPtr(t *testing.T) {
 	assert.NotNil(t, p)
 	assert.Equal(t, m, *p)
 }
+
+func TestGetIPFromAddress(t *testing.T) {
+	tests := []struct {
+		name    string
+		address string
+		want    string
+		wantErr bool
+	}{
+		{name: "host and port", address: "localhost:8080", want: "localhost"},
+		{name: "ipv4 and port", address: "192.168.1.10:9090", want: "192.168.1.10"},
+		{name: "ipv6 and port", address: "[::1]:8080", want: "::1"},
+		{name: "hostname without port", address: "localhost", wantErr: true},
+		{name: "empty string", address: "", wantErr: true},
+		{name: "port only", address: ":8080", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetIPFromAddress(tt.address)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

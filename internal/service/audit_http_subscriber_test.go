@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net"
@@ -30,7 +29,7 @@ func TestHTTPAuditSubscriber_Notify(t *testing.T) {
 	sub := NewHTTPAuditSubscriber(srv.URL)
 	event := model.NewAuditEvent("192.168.1.1", []string{"metric-1"})
 
-	err := sub.Notify(context.Background(), event)
+	err := sub.Notify(event)
 	require.NoError(t, err)
 
 	assert.Equal(t, "application/json", receivedHeader)
@@ -49,13 +48,10 @@ func TestHTTPAuditSubscriber_ErrorStatus(t *testing.T) {
 	sub := NewHTTPAuditSubscriber(srv.URL)
 	event := model.NewAuditEvent("192.168.1.1", []string{"metric-1"})
 
-	err := sub.Notify(context.Background(), event)
+	err := sub.Notify(event)
 	require.Error(t, err)
 }
 
-// TestHTTPAuditSubscriber_ConnectionReuse проверяет, что выделенный Transport
-// переиспользует TCP-соединение между последовательными событиями (keep-alive),
-// а не выполняет новый Dial на каждое.
 func TestHTTPAuditSubscriber_ConnectionReuse(t *testing.T) {
 	var mu sync.Mutex
 	newConns := 0
@@ -82,7 +78,7 @@ func TestHTTPAuditSubscriber_ConnectionReuse(t *testing.T) {
 	sub := NewHTTPAuditSubscriber(srv.URL)
 
 	for i := 0; i < 5; i++ {
-		err := sub.Notify(context.Background(), model.NewAuditEvent("192.168.1.1", []string{"m"}))
+		err := sub.Notify(model.NewAuditEvent("192.168.1.1", []string{"m"}))
 		require.NoError(t, err)
 	}
 

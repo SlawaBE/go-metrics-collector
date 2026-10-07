@@ -20,17 +20,19 @@ type FileMetricSaver interface {
 // AuditSubscriber receives and processes audit events.
 type AuditSubscriber interface {
 	// Notify processes a single audit event.
-	Notify(ctx context.Context, event model.AuditEvent) error
+	Notify(event model.AuditEvent) error
 	// Name returns the subscriber name for logging.
 	Name() string
+	// Close releases resources held by the subscriber.
+	Close() error
 }
 
-// AuditPublisher publishes audit events to subscribers.
+// AuditPublisher publishes audit events to subscribers. Events are delivered asynchronously.
 type AuditPublisher interface {
 	// Subscribe registers a subscriber for audit events.
 	Subscribe(subscriber AuditSubscriber)
 	// SendMetric publishes an audit event for a single metric.
-	SendMetric(ctx context.Context, ip string, metric model.Metric)
+	SendMetric(address string, metric model.Metric)
 	// SendMetrics publishes an audit event for a set of metrics.
-	SendMetrics(ctx context.Context, ip string, metrics []model.Metric)
+	SendMetrics(address string, metrics []model.Metric)
 }

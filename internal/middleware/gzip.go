@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	internalgzip "github.com/SlawaBE/go-metrics-collector/internal/gzip"
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
+	"go.uber.org/zap"
 )
 
 var gzipWriterPool = sync.Pool{
@@ -104,7 +106,7 @@ func GZip(handler http.Handler) http.Handler {
 		handler.ServeHTTP(rw, r)
 		if rw.zw != nil {
 			if err := rw.Close(); err != nil {
-				http.Error(w, "failed to compress response", http.StatusInternalServerError)
+				logger.Log.Error("failed to compress response", zap.Error(err))
 			}
 		}
 	})

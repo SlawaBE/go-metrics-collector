@@ -66,14 +66,20 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 // sets up auditing, attaches the middleware (signature, gzip, logging) and
 // listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) {
+	logger.Initialize("info")
+
+	var profileServer *http.Server
 	if config.ProfileEnabled {
+		profileServer = &http.Server{
+			Addr:    config.ProfileAddress,
+			Handler: http.DefaultServeMux,
+		}
 		go func() {
-			if err := http.ListenAndServe(":8085", nil); err != nil {
-				os.Exit(5)
+			if err := profileServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log.Fatal("Error starting profile server", zap.Error(err))
 			}
 		}()
 	}
-	logger.Initialize("info")
 
 	var database *sql.DB
 	var metricsService *service.MetricsService
@@ -115,9 +121,15 @@ func Run(config config.Config) {
 		metricsService = service.NewMetricsService(storageInstance, saver)
 	}
 
-	auditService := service.NewAuditService()
+	auditService, auditErr := service.NewAuditService(config.AuditQueueSize)
+	if auditErr != nil {
+		logger.Log.Fatal("Error creating audit service", zap.Error(auditErr))
+	}
 	if config.AuditFile != "" {
-		fileAuditSubscriber := service.NewFileAuditSubscriber(config.AuditFile)
+		fileAuditSubscriber, err := service.NewFileAuditSubscriber(config.AuditFile)
+		if err != nil {
+			logger.Log.Fatal("Error creating file audit subscriber", zap.Error(err))
+		}
 		auditService.Subscribe(fileAuditSubscriber)
 	}
 	if config.AuditURL != "" {
@@ -148,10 +160,15 @@ func Run(config config.Config) {
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
-		err := httpServer.Shutdown(shutdownCtx)
-		if err != nil {
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			logger.Log.Error("Error during server shutdown", zap.Error(err))
 		}
+		if profileServer != nil {
+			if err := profileServer.Shutdown(shutdownCtx); err != nil {
+				logger.Log.Error("Error during profile server shutdown", zap.Error(err))
+			}
+		}
+		auditService.Shutdown()
 		close(shutdownDone)
 	}()
 

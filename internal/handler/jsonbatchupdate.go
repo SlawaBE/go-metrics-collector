@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -61,11 +60,10 @@ func (h *JSONBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 
 	err := h.service.UpdateMetrics(r.Context(), metrics)
 
-	h.auditPublisher.SendMetrics(r.Context(), strings.Split(r.RemoteAddr, ":")[0], metrics)
-
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		h.auditPublisher.SendMetrics(r.RemoteAddr, metrics)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("{}"))
 	}

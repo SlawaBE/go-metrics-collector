@@ -3,6 +3,7 @@
 package utils
 
 import (
+	"net"
 	"strconv"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -21,4 +22,10 @@ func ConvertGauge(value float64) string {
 // Ptr returns a pointer to the given metric.
 func Ptr(m model.Metric) *model.Metric {
 	return &m
+}
+
+// GetIPFromAddress extracts ip from address string
+func GetIPFromAddress(address string) (string, error) {
+	host, _, err := net.SplitHostPort(address)
+	return host, err
 }

@@ -125,7 +125,7 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 	stor := storage.NewMemStorage()
-	auditPublisher := service.NewAuditService()
+	auditPublisher, _ := service.NewAuditService(10)
 	saver := service.NewJSONFileMetricSaver(-1, "", stor)
 	service := service.NewMetricsService(stor, saver)
 	handler := NewUpdateMetricHandler(service, auditPublisher)

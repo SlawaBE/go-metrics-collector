@@ -19,7 +19,10 @@ import (
 func newExampleRouter() chi.Router {
 	stor := storage.NewMemStorage()
 	metricsService := service.NewMetricsService(stor, nil)
-	audit := service.NewAuditService()
+	audit, err := service.NewAuditService(100)
+	if err != nil {
+		panic(fmt.Sprintf("cannot create audit service: %v", err))
+	}
 	return InitRouter(metricsService, nil, audit)
 }
 
@@ -59,10 +62,10 @@ func ExampleInitRouter_urlUpdateAndGet() {
 	srv := httptest.NewServer(newExampleRouter())
 	defer srv.Close()
 
-	status, _ := request(srv, http.MethodPost, "/update/gauge/CPUutilization1/73.5", "")
+	status, _ := request(srv, http.MethodPost, "/update/gauge/CPUUtilization1/73.5", "")
 	fmt.Printf("update status: %d\n", status)
 
-	status, body := request(srv, http.MethodGet, "/value/gauge/CPUutilization1", "")
+	status, body := request(srv, http.MethodGet, "/value/gauge/CPUUtilization1", "")
 	fmt.Printf("get status: %d, value: %s\n", status, body)
 
 	// Output:
@@ -89,7 +92,10 @@ func ExampleInitRouter_jsonUpdate() {
 func ExampleInitRouter_jsonGet() {
 	stor := storage.NewMemStorage()
 	metricsService := service.NewMetricsService(stor, nil)
-	audit := service.NewAuditService()
+	audit, err := service.NewAuditService(100)
+	if err != nil {
+		panic(fmt.Sprintf("cannot create audit service: %v", err))
+	}
 
 	if err := stor.UpdateMetric(context.TODO(), model.NewGaugeMetric("HeapAlloc", 1024.5)); err != nil {
 		panic(err)
@@ -129,7 +135,10 @@ func ExampleInitRouter_batchUpdate() {
 func ExampleInitRouter_list() {
 	stor := storage.NewMemStorage()
 	metricsService := service.NewMetricsService(stor, nil)
-	audit := service.NewAuditService()
+	audit, err := service.NewAuditService(100)
+	if err != nil {
+		panic(fmt.Sprintf("cannot create audit service: %v", err))
+	}
 
 	if err := stor.UpdateMetric(context.TODO(), model.NewCounterMetric("PollCount", 10)); err != nil {
 		panic(err)
