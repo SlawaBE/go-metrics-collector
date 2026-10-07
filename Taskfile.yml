@@ -61,6 +61,11 @@ tasks:
     cmds:
       - go test -cover ./...
 
+  bench:
+    desc: Run benchmark tests
+    cmds:
+      - go test -bench=. -benchmem ./...
+
   vet:
     desc: Run statictest
     cmds:
