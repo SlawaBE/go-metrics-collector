@@ -12,12 +12,8 @@ import (
 type Config struct {
 	// ServerAddress is the HTTP server address and port.
 	ServerAddress string `env:"ADDRESS"`
-	// StoreInterval is the interval (in seconds) for saving metrics to a file.
-	StoreInterval int `env:"STORE_INTERVAL"`
 	// FileStoragePath is the path to the file used for persisting metrics.
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	// Restore indicates whether to restore metrics from the file on startup.
-	Restore bool `env:"RESTORE"`
 	// DatabaseDSN is the PostgreSQL connection string; when set, the DB is used.
 	DatabaseDSN string `env:"DATABASE_DSN"`
 	// Key is the secret key for signing and verifying HMAC SHA-256 requests.
@@ -26,12 +22,16 @@ type Config struct {
 	AuditFile string `env:"AUDIT_FILE"`
 	// AuditURL is the URL for sending audit events.
 	AuditURL string `env:"AUDIT_URL"`
-	// AuditQueueSize limits the size of the audit event queue.
-	AuditQueueSize int `env:"AUDIT_QUEUE_SIZE"`
-	// ProfileEnabled indicates whether pprof profiling is enabled.
-	ProfileEnabled bool `env:"PROFILE_ENABLED"`
 	// ProfileAddress is the HTTP profileing server address and port.
 	ProfileAddress string `env:"PROFILE_ADDRESS"`
+	// StoreInterval is the interval (in seconds) for saving metrics to a file.
+	StoreInterval int `env:"STORE_INTERVAL"`
+	// AuditQueueSize limits the size of the audit event queue.
+	AuditQueueSize int `env:"AUDIT_QUEUE_SIZE"`
+	// Restore indicates whether to restore metrics from the file on startup.
+	Restore bool `env:"RESTORE"`
+	// ProfileEnabled indicates whether pprof profiling is enabled.
+	ProfileEnabled bool `env:"PROFILE_ENABLED"`
 }
 
 // ReadConfig populates the configuration from command-line flags and

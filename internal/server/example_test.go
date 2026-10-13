@@ -46,7 +46,7 @@ func request(srv *httptest.Server, method, url string, body string) (int, string
 	if err != nil {
 		panic(fmt.Sprintf("cannot do request: %v", err))
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {

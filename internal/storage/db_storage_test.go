@@ -21,7 +21,7 @@ func newDBStorage(t *testing.T) (*DBStorage, sqlmock.Sqlmock) {
 
 func TestDBStorage_UpdateMetric(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectPrepare(`INSERT INTO metrics`)
@@ -37,7 +37,7 @@ func TestDBStorage_UpdateMetric(t *testing.T) {
 
 func TestDBStorage_UpdateMetric_BeginError(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	mock.ExpectBegin().WillReturnError(errors.New("begin failed"))
 
@@ -48,7 +48,7 @@ func TestDBStorage_UpdateMetric_BeginError(t *testing.T) {
 
 func TestDBStorage_UpdateMetric_ExecError(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectPrepare(`INSERT INTO metrics`)
@@ -63,7 +63,7 @@ func TestDBStorage_UpdateMetric_ExecError(t *testing.T) {
 
 func TestDBStorage_GetMetric(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	rows := sqlmock.NewRows([]string{"id", "type", "delta", "value"}).
 		AddRow("counter-1", model.Counter, int64(10), nil)
@@ -83,7 +83,7 @@ func TestDBStorage_GetMetric(t *testing.T) {
 
 func TestDBStorage_GetMetric_NotFound(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	mock.ExpectQuery(`SELECT id, type, delta, value FROM metrics WHERE id = \$1`).
 		WithArgs("missing").
@@ -97,7 +97,7 @@ func TestDBStorage_GetMetric_NotFound(t *testing.T) {
 
 func TestDBStorage_GetValues(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	rows := sqlmock.NewRows([]string{"id", "type", "delta", "value"}).
 		AddRow("counter-1", model.Counter, int64(10), nil).
@@ -116,7 +116,7 @@ func TestDBStorage_GetValues(t *testing.T) {
 
 func TestDBStorage_GetValues_Error(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	mock.ExpectQuery(`SELECT id, type, delta, value FROM metrics`).
 		WillReturnError(errors.New("query failed"))
@@ -128,7 +128,7 @@ func TestDBStorage_GetValues_Error(t *testing.T) {
 
 func TestDBStorage_UpdateAll(t *testing.T) {
 	s, mock := newDBStorage(t)
-	defer s.db.Close()
+	defer func() { _ = s.db.Close() }()
 
 	metrics := []model.Metric{
 		model.NewCounterMetric("counter-1", 10),

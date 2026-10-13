@@ -109,6 +109,7 @@ tasks:
     desc: Run all test
     cmds:
       - task vet
+      - task staticlint
       - task test
       - task autotest
 

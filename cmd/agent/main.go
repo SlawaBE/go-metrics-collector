@@ -2,17 +2,26 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/agent"
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Error running agent: %v", err)
+	}
+}
+
+// run reads the agent configuration and starts the agent. It returns an
+// error only when the configuration cannot be loaded; the agent itself keeps
+// running until a shutdown signal is received.
+func run() error {
 	conf, err := config.ReadConfig()
 	if err != nil {
-		fmt.Println("Error reading configuration")
-		os.Exit(1)
+		return fmt.Errorf("error reading configuration: %w", err)
 	}
 	agent.Run(conf)
+	return nil
 }

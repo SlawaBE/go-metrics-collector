@@ -12,12 +12,12 @@ import (
 type Config struct {
 	// ServerAddress is the metrics server address and port.
 	ServerAddress string `env:"ADDRESS"`
+	// Key is the secret key for signing requests with HMAC SHA-256.
+	Key string `env:"KEY"`
 	// PollInterval is the metrics polling interval (in seconds).
 	PollInterval int `env:"POLL_INTERVAL"`
 	// ReportInterval is the interval (in seconds) for sending reports to the server.
 	ReportInterval int `env:"REPORT_INTERVAL"`
-	// Key is the secret key for signing requests with HMAC SHA-256.
-	Key string `env:"KEY"`
 	// RateLimit is the limit of workers sending requests to the server.
 	RateLimit int `env:"RATE_LIMIT"`
 }

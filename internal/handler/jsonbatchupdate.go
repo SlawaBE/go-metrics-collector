@@ -65,6 +65,8 @@ func (h *JSONBatchUpdateMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http
 	} else {
 		h.auditPublisher.SendMetrics(r.RemoteAddr, metrics)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("{}"))
+		if _, err := w.Write([]byte("{}")); err != nil {
+			logger.Log.Error("error write response body")
+		}
 	}
 }
