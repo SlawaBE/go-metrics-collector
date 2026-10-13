@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestListMetricHandler_ServeHTTP(t *testing.T) {
@@ -20,13 +21,13 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 		metrics []model.Metric
 	}
 	type output struct {
-		statusCode int
 		value      string
+		statusCode int
 	}
 	tests := []struct {
+		want output
 		name string
 		data input
-		want output
 	}{
 		{
 			name: "Get all metrics invalid method",
@@ -65,7 +66,7 @@ func TestListMetricHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metrics != nil {
 				for _, m := range tt.data.metrics {
-					stor.UpdateMetric(context.Background(), m)
+					require.NoError(t, stor.UpdateMetric(context.Background(), m))
 				}
 			}
 			url := "/"

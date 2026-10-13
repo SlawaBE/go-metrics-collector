@@ -88,7 +88,7 @@ func decompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	return io.ReadAll(reader)
 }
 
@@ -101,7 +101,7 @@ func TestGZip_DecompressRequestBody(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		w.WriteHeader(http.StatusOK)
-		w.Write(body)
+		_, _ = w.Write(body)
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(compressed))

@@ -12,17 +12,16 @@ import (
 )
 
 type mockAuditSubscriber struct {
-	name string
+	notifyErr error
 
-	mu           sync.Mutex
+	entered      chan struct{}
+	block        <-chan struct{}
+	name         string
 	events       []model.AuditEvent
 	closeCounter int
 
-	notifyErr error
-
-	entered   chan struct{}
-	block     <-chan struct{}
 	enterOnce sync.Once
+	mu        sync.Mutex
 }
 
 func (m *mockAuditSubscriber) Notify(event model.AuditEvent) error {
