@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,6 +36,8 @@ func (h *PingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No connect to database", http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println("PINGPONG")
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -66,7 +66,9 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 // sets up auditing, attaches the middleware (signature, gzip, logging) and
 // listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) {
-	logger.Initialize("info")
+	if err := logger.Initialize("info"); err != nil {
+		logger.Log.Error("error initializing logger", zap.Error(err))
+	}
 
 	var profileServer *http.Server
 	if config.ProfileEnabled {
@@ -107,14 +109,20 @@ func Run(config config.Config) {
 			logger.Log.Fatal("Error migration", zap.Error(err))
 			os.Exit(4)
 		}
-		defer database.Close()
+		defer func() {
+			if err := database.Close(); err != nil {
+				logger.Log.Error("error closing database", zap.Error(err))
+			}
+		}()
 		storageInstance := storage.NewDBStorage(database)
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
 		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
 		if config.Restore {
-			saver.Load()
+			if err := saver.Load(); err != nil {
+				logger.Log.Error("error loading metrics from file", zap.Error(err))
+			}
 		}
 
 		saver.StartSync(ctx)

@@ -21,9 +21,9 @@ func TestCheckSumMiddleware_RequestSignature(t *testing.T) {
 	})
 
 	tests := []struct {
+		signature  func() string
 		name       string
 		body       []byte
-		signature  func() string
 		wantStatus int
 	}{
 		{

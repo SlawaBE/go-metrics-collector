@@ -22,7 +22,7 @@ func readGzipBody(t *testing.T, r *http.Request) []byte {
 	t.Helper()
 	reader, err := gzip.NewReader(r.Body)
 	require.NoError(t, err)
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	raw, err := io.ReadAll(reader)
 	require.NoError(t, err)
 	return raw

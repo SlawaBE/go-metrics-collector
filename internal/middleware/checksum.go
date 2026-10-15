@@ -51,13 +51,15 @@ func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 				return
 			}
 
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err != nil {
-				logger.Log.Error("Failed to read request body", zap.Error(err))
+			bodyBytes, readErr := io.ReadAll(r.Body)
+			if readErr != nil {
+				logger.Log.Error("Failed to read request body", zap.Error(readErr))
 				http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 				return
 			}
-			r.Body.Close()
+			if err := r.Body.Close(); err != nil {
+				logger.Log.Error("Failed to close request body", zap.Error(err))
+			}
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 			sign, err := hex.DecodeString(signatureHeader)
@@ -87,6 +89,8 @@ func (c *CheckSum) CheckSumMiddleware(handler http.Handler) http.Handler {
 		w.Header().Set("HashSHA256", hex.EncodeToString(respSig))
 
 		w.WriteHeader(ww.status)
-		w.Write(response)
+		if _, err := w.Write([]byte(response)); err != nil {
+			logger.Log.Error("error write response body")
+		}
 	})
 }

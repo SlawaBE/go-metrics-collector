@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
@@ -45,9 +46,15 @@ func (h *GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		switch metricType {
 		case model.Gauge:
-			w.Write([]byte(utils.ConvertGauge(*m.Value)))
+			h.writeResponseBody(w, utils.ConvertGauge(*m.Value))
 		case model.Counter:
-			w.Write([]byte(utils.ConvertCounter(*m.Delta)))
+			h.writeResponseBody(w, utils.ConvertCounter(*m.Delta))
 		}
+	}
+}
+
+func (h *GetMetricHandler) writeResponseBody(w http.ResponseWriter, body string) {
+	if _, err := w.Write([]byte(body)); err != nil {
+		logger.Log.Error("error write response body")
 	}
 }

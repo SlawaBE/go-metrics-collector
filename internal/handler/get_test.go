@@ -13,18 +13,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 	type input struct {
+		metric   *model.Metric
 		method   string
 		pathType string
 		pathName string
-		metric   *model.Metric
 	}
 	type output struct {
-		statusCode int
 		value      string
+		statusCode int
 	}
 	tests := []struct {
 		name string
@@ -118,7 +119,7 @@ func TestJsonGetMetricHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metric != nil {
-				stor.UpdateMetric(context.Background(), *tt.data.metric)
+				require.NoError(t, stor.UpdateMetric(context.Background(), *tt.data.metric))
 			}
 			url := "/value/" + tt.data.pathType + "/" + tt.data.pathName
 
