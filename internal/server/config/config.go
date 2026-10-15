@@ -9,6 +9,7 @@ import (
 )
 
 // Config describes the metrics server startup parameters.
+// generate:reset
 type Config struct {
 	// ServerAddress is the HTTP server address and port.
 	ServerAddress string `env:"ADDRESS"`

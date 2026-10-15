@@ -9,6 +9,7 @@ import (
 )
 
 // Config describes the metrics collection agent startup parameters.
+// generate:reset
 type Config struct {
 	// ServerAddress is the metrics server address and port.
 	ServerAddress string `env:"ADDRESS"`

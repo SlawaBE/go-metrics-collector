@@ -20,6 +20,8 @@ cmd/hasher/main
 cmd/hasher/hasher
 cmd/staticlint/main
 cmd/staticlint/staticlint
+cmd/reset/main
+cmd/reset/reset
 
 metricstest
 statictest

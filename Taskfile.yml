@@ -9,6 +9,7 @@ vars:
   AGENT_BINARY: cmd/agent/agent{{.EXE}}
   HASHER_BINARY: cmd/hasher/hasher{{.EXE}}
   STATICLINT_BINARY: cmd/staticlint/staticlint{{.EXE}}
+  RESET_BINARY: cmd/reset/reset{{.EXE}}
   STATICTEST_BINARY: statictest{{.EXE}}
   LOG_DIR: logs
   TEMP_FILE: tempfile
@@ -22,6 +23,7 @@ tasks:
       - rm -f {{.AGENT_BINARY}}
       - rm -f {{.HASHER_BINARY}}
       - rm -f {{.STATICLINT_BINARY}}
+      - rm -f {{.RESET_BINARY}}
       - rm -rf {{.LOG_DIR}}
       - rm -f {{.TEMP_FILE}}
       - rm -f {{.AUDIT_FILE}}
@@ -69,6 +71,22 @@ tasks:
     cmds:
       - ./{{.STATICLINT_BINARY}} ./...
 
+  build-reset:
+    desc: Build reset (code generator)
+    cmds:
+      - go build -o {{.RESET_BINARY}} ./cmd/reset/
+    sources:
+      - "**/*.go"
+    generates:
+      - "{{.RESET_BINARY}}"
+
+  reset:
+    desc: Run Reset() code generation
+    deps:
+      - build-reset
+    cmds:
+      - ./{{.RESET_BINARY}} .
+
   test:
     desc: Run tests
     cmds:
@@ -104,6 +122,7 @@ tasks:
       - build-agent
       - build-hasher
       - build-staticlint
+      - build-reset
 
   test-all:
     desc: Run all test

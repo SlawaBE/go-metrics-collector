@@ -3,6 +3,7 @@ package model
 import "time"
 
 // AuditEvent describes an audit event raised when metrics are received.
+// generate:reset
 type AuditEvent struct {
 	// IPAddress is the IP address of the client that sent the metrics.
 	IPAddress string `json:"ip_address"`
