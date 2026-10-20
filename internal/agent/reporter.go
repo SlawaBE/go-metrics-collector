@@ -20,9 +20,9 @@ import (
 // via POST /updates, using a pool of workers.
 type Reporter struct {
 	storage        Storage
-	reportInterval int
 	client         *resty.Client
 	secretKey      []byte
+	reportInterval int
 	rateLimit      int
 }
 

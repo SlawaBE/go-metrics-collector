@@ -13,8 +13,8 @@ import (
 // them to the storage at the configured polling interval.
 type Poller struct {
 	storage      storage.Storage
-	pollInterval int
 	getMetrics   func() []model.Metric
+	pollInterval int
 }
 
 // NewPoller creates a poller with the given storage, polling interval and

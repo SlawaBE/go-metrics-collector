@@ -22,8 +22,8 @@ var gzipWriterPool = sync.Pool{
 
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	compress bool
 	zw       *gzip.Writer
+	compress bool
 	started  bool
 }
 
@@ -93,7 +93,11 @@ func GZip(handler http.Handler) http.Handler {
 				http.Error(w, "Failed to decompress request body", http.StatusBadRequest)
 				return
 			}
-			defer gzipReader.Close()
+			defer func() {
+				if err := gzipReader.Close(); err != nil {
+					logger.Log.Error("Failed to close gzip reader", zap.Error(err))
+				}
+			}()
 			r.Body = io.NopCloser(gzipReader)
 		}
 

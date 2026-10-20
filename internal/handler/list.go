@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 )
 
@@ -43,5 +44,7 @@ func (h *ListMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		builder.WriteString("</li>")
 	}
 	builder.WriteString("</ul>")
-	io.WriteString(w, builder.String())
+	if _, err := io.WriteString(w, builder.String()); err != nil {
+		logger.Log.Error("error write response body")
+	}
 }

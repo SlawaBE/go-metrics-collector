@@ -16,7 +16,7 @@ func decompress(t *testing.T, data []byte) []byte {
 	t.Helper()
 	reader, err := gzstd.NewReader(bytes.NewReader(data))
 	require.NoError(t, err)
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	raw, err := io.ReadAll(reader)
 	require.NoError(t, err)
 	return raw

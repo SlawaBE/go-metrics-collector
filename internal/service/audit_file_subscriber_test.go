@@ -15,7 +15,7 @@ func TestFileAuditSubscriber_WritesEvent(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
 	sub, err := NewFileAuditSubscriber(path)
 	require.NoError(t, err)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	event := model.NewAuditEvent("192.168.1.1", []string{"counter-1"})
 	require.NoError(t, sub.Notify(event))
@@ -33,7 +33,7 @@ func TestFileAuditSubscriber_Appends(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
 	sub, err := NewFileAuditSubscriber(path)
 	require.NoError(t, err)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	event := model.NewAuditEvent("192.168.1.1", []string{"append"})
 	require.NoError(t, sub.Notify(event))

@@ -11,8 +11,8 @@ import (
 // MemStorage is a thread-safe in-memory metric storage based on a map.
 // Counter accumulates via +=, Gauge is overwritten.
 type MemStorage struct {
-	mutex   sync.RWMutex
 	metrics map[string]model.Metric
+	mutex   sync.RWMutex
 }
 
 // NewMemStorage creates an empty in-memory metric storage.
@@ -37,7 +37,9 @@ func (s *MemStorage) UpdateAll(ctx context.Context, metrics []model.Metric) erro
 	defer s.mutex.Unlock()
 
 	for _, m := range metrics {
-		s.update(m)
+		if err := s.update(m); err != nil {
+			return err
+		}
 	}
 	return nil
 }

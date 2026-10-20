@@ -45,7 +45,11 @@ func RunMigrations(database *sql.DB, databaseDSN string) error {
 	if err != nil {
 		return fmt.Errorf("error create source %v", err)
 	}
-	defer m.Close()
+	defer func() {
+		if _, err := m.Close(); err != nil {
+			logger.Log.Error("error close migration source", zap.Error(err))
+		}
+	}()
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("error migrate %v", err)
