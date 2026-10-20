@@ -6,9 +6,17 @@ import (
 
 	"github.com/SlawaBE/go-metrics-collector/internal/agent"
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
+	"github.com/SlawaBE/go-metrics-collector/internal/buildinfo"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func main() {
+	buildinfo.Print(buildVersion, buildDate, buildCommit)
 	if err := run(); err != nil {
 		log.Fatalf("Error running agent: %v", err)
 	}

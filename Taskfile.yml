@@ -14,6 +14,10 @@ vars:
   LOG_DIR: logs
   TEMP_FILE: tempfile
   AUDIT_FILE: audit.log
+  DATE:
+    sh: date '+%Y.%m.%d'
+  COMMIT:
+    sh: git rev-parse HEAD
 
 tasks:
   clean:
@@ -31,7 +35,12 @@ tasks:
   build-server:
     desc: Build server
     cmds:
-      - go build -o {{.SERVER_BINARY}} ./cmd/server/
+      - >
+        go build
+        -ldflags "-X main.buildVersion={{default "" .VERSION}}
+        -X 'main.buildDate={{.DATE}}'
+        -X main.buildCommit={{.COMMIT}}"
+        -o {{.SERVER_BINARY}} ./cmd/server/
     sources:
       - "**/*.go"
     generates:
@@ -40,7 +49,12 @@ tasks:
   build-agent:
     desc: Build agent
     cmds:
-      - go build -o {{.AGENT_BINARY}} ./cmd/agent/
+      - >
+        go build
+        -ldflags "-X main.buildVersion={{default "" .VERSION}}
+        -X 'main.buildDate={{.DATE}}'
+        -X main.buildCommit={{.COMMIT}}"
+        -o {{.AGENT_BINARY}} ./cmd/agent/
     sources:
       - "**/*.go"
     generates:

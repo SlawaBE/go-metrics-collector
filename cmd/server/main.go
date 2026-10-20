@@ -4,11 +4,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/buildinfo"
 	"github.com/SlawaBE/go-metrics-collector/internal/server"
 	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	buildinfo.Print(buildVersion, buildDate, buildCommit)
 	if err := run(); err != nil {
 		log.Fatalf("Error running server: %v", err)
 	}
