@@ -15,19 +15,20 @@ type Resetter interface {
 // It mirrors sync.Pool but is type-safe and resets an object before it is
 // returned to the pool, so callers always obtain a clean instance.
 //
-// The generic parameter T is constrained to types that implement Resetter. In
-// this project those types declare Reset on a pointer receiver (for example
-// *model.Metric), so Pool is typically instantiated with a pointer type and
-// Get returns a fresh, reset *Metric.
+// T must be a pointer type whose Reset method is declared on the pointer
+// receiver, such as *model.Metric. A value type with a pointer-receiver Reset
+// does not satisfy Resetter (its method set does not include Reset), so
+// instantiating Pool with it — and thus calling Put — will not compile.
+// Get therefore always returns a pointer that has been reset.
 type Pool[T Resetter] struct {
-	pool *sync.Pool
+	pool sync.Pool
 }
 
 // New creates and returns a Pool for the type T. The factory function
 // allocates a fresh object whenever the pool is empty.
 func New[T Resetter](factory func() T) *Pool[T] {
 	return &Pool[T]{
-		pool: &sync.Pool{
+		pool: sync.Pool{
 			New: func() any {
 				return factory()
 			},

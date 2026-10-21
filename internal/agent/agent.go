@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,14 +11,13 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
-	"go.uber.org/zap"
 )
 
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
 // the reporter, which run until a shutdown signal is received.
-func Run(config config.Config) {
+func Run(config config.Config) error {
 	if err := logger.Initialize("info"); err != nil {
-		logger.Log.Error("error initializing logger", zap.Error(err))
+		return fmt.Errorf("error initializing logger: %w", err)
 	}
 
 	storage := storage.NewMemStorage()
@@ -45,4 +45,5 @@ func Run(config config.Config) {
 
 	wg.Wait()
 	logger.Log.Info("Agent stopped")
+	return nil
 }

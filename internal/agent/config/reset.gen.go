@@ -14,4 +14,3 @@ func (rs *Config) Reset() {
 	rs.ReportInterval = 0
 	rs.RateLimit = 0
 }
-

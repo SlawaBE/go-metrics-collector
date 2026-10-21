@@ -20,4 +20,3 @@ func (rs *Config) Reset() {
 	rs.Restore = false
 	rs.ProfileEnabled = false
 }
-

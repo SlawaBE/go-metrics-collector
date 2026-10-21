@@ -39,4 +39,3 @@ func (rs *MetricRequest) Reset() {
 	rs.ID = ""
 	rs.MType = ""
 }
-

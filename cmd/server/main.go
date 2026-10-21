@@ -27,6 +27,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("error reading configuration: %w", err)
 	}
-	server.Run(conf)
-	return nil
+
+	return server.Run(conf)
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -65,9 +66,9 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 // Run starts the metrics server: initializes the storage (memory or database),
 // sets up auditing, attaches the middleware (signature, gzip, logging) and
 // listens for incoming requests until a shutdown signal is received.
-func Run(config config.Config) {
+func Run(config config.Config) error {
 	if err := logger.Initialize("info"); err != nil {
-		logger.Log.Error("error initializing logger", zap.Error(err))
+		return fmt.Errorf("error initializing logger: %v", err)
 	}
 
 	var profileServer *http.Server
@@ -93,7 +94,7 @@ func Run(config config.Config) {
 		var err error
 		database, err = db.NewDB(config.DatabaseDSN)
 		if err != nil {
-			os.Exit(2)
+			return fmt.Errorf("error db config: %w", err)
 		}
 
 		pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -101,13 +102,13 @@ func Run(config config.Config) {
 		err = database.PingContext(pingCtx)
 		if err != nil {
 			logger.Log.Fatal("Error ping database", zap.Error(err))
-			os.Exit(3)
+			return fmt.Errorf("error db ping: %w", err)
 		}
 
 		err = db.RunMigrations(database, config.DatabaseDSN)
 		if err != nil {
 			logger.Log.Fatal("Error migration", zap.Error(err))
-			os.Exit(4)
+			return fmt.Errorf("error migration: %w", err)
 		}
 		defer func() {
 			if err := database.Close(); err != nil {
@@ -187,4 +188,5 @@ func Run(config config.Config) {
 
 	<-shutdownDone
 	logger.Log.Info("Server stopped")
+	return nil
 }

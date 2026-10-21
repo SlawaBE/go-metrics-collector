@@ -57,22 +57,12 @@ func run(pass *analysis.Pass) (any, error) {
 				return true
 			}
 
-			sig, ok := callee.Type().(*types.Signature)
+			fn, ok := callee.(*types.Func)
 			if !ok {
 				return true
 			}
 
-			recv := sig.Recv()
-			if recv != nil {
-				return true
-			}
-
-			obj := callee
-			if objName := obj.Name(); objName != "Exit" {
-				return true
-			}
-
-			if pkg := obj.Pkg(); pkg == nil || pkg.Name() != "os" {
+			if fn.FullName() != "os.Exit" {
 				return true
 			}
 

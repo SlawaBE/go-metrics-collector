@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -33,7 +34,7 @@ type packageModel struct {
 
 // skipScanDir reports whether a directory should not be walked.
 func skipScanDir(name string) bool {
-	if name == "testdata" || name == ".git" {
+	if name == "testdata" {
 		return true
 	}
 	if strings.HasPrefix(name, ".") {
@@ -111,7 +112,12 @@ func processDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("package %s (%s): %w", pm.pkgName, dir, err)
 	}
-	return writeFile(dir, "reset.gen.go", content)
+
+	formattedContent, err := format.Source([]byte(content))
+	if err != nil {
+		return fmt.Errorf("error formatting source: %v", err)
+	}
+	return writeFile(dir, "reset.gen.go", formattedContent)
 }
 
 // collectPackage fills the model from the parsed AST of a package: it
@@ -191,7 +197,7 @@ func resetMethod(pm *packageModel, ti *typeInfo) (string, error) {
 	}
 
 	var body []string
-	body = append(body, "if rs == nil {", "\treturn", "}", "")
+	body = append(body, "if rs == nil {", "return", "}", "")
 
 	for _, field := range st.Fields.List {
 		lines, err := fieldReset(pm, field)
@@ -209,7 +215,7 @@ func resetMethod(pm *packageModel, ti *typeInfo) (string, error) {
 			b.WriteString("\n")
 			continue
 		}
-		b.WriteString("\t" + line + "\n")
+		b.WriteString(line + "\n")
 	}
 	b.WriteString("}\n")
 	return b.String(), nil
@@ -297,7 +303,7 @@ func pointerResetLines(pm *packageModel, expr string, ptr *ast.StarExpr) ([]stri
 		return nil, err
 	}
 	out := []string{"if " + expr + " != nil {"}
-	out = append(out, indent(inner, 1)...)
+	out = append(out, inner...)
 	out = append(out, "}")
 	return out, nil
 }
@@ -372,20 +378,6 @@ func markerDoc(docs ...*ast.CommentGroup) bool {
 	return false
 }
 
-// indent adds n leading tabs to each non-empty line.
-func indent(lines []string, n int) []string {
-	out := make([]string, 0, len(lines))
-	tab := strings.Repeat("\t", n)
-	for _, l := range lines {
-		if l == "" {
-			out = append(out, "")
-			continue
-		}
-		out = append(out, tab+l)
-	}
-	return out
-}
-
 // fieldName returns a readable field name for error messages.
 func fieldName(field *ast.Field) string {
 	if len(field.Names) == 0 {
@@ -427,7 +419,7 @@ func position(pm *packageModel, pos token.Pos) string {
 }
 
 // writeFile writes content into dir/fileName.
-func writeFile(dir, fileName, content string) error {
+func writeFile(dir string, fileName string, content []byte) error {
 	path := filepath.Join(dir, fileName)
-	return os.WriteFile(path, []byte(content), 0o644)
+	return os.WriteFile(path, content, 0o644)
 }

@@ -20,7 +20,6 @@ func (b *buffered) Reset() {
 func TestNew_ReturnsPool(t *testing.T) {
 	p := New(func() *buffered { return &buffered{} })
 	require.NotNil(t, p)
-	require.NotNil(t, p.pool)
 }
 
 func TestGet_EmptyPoolCreatesFromFactory(t *testing.T) {

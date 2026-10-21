@@ -30,6 +30,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("error reading configuration: %w", err)
 	}
-	agent.Run(conf)
-	return nil
+
+	return agent.Run(conf)
 }
