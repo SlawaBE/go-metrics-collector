@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
@@ -42,14 +43,22 @@ func (s *DBStorage) UpdateMetric(ctx context.Context, metric model.Metric) error
 			logger.Log.Error("error begin transaction", zap.Error(err))
 			return err
 		}
-		defer tx.Rollback()
+		defer func() {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				logger.Log.Error("error rollback transaction", zap.Error(rollbackErr))
+			}
+		}()
 
 		stmt, err := tx.PrepareContext(ctx, insertMetric)
 		if err != nil {
 			logger.Log.Error("error prepare statement", zap.Error(err))
 			return err
 		}
-		defer stmt.Close()
+		defer func() {
+			if closeErr := stmt.Close(); closeErr != nil {
+				logger.Log.Error("error close statement", zap.Error(closeErr))
+			}
+		}()
 
 		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
 		if err != nil {
@@ -74,13 +83,17 @@ func (s *DBStorage) GetValues(ctx context.Context) ([]model.Metric, error) {
 			logger.Log.Error("error get all metric", zap.Error(err))
 			return err
 		}
-		defer rows.Close()
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				logger.Log.Error("error close rows", zap.Error(closeErr))
+			}
+		}()
 
 		for rows.Next() {
 			var metric model.Metric
-			if err := rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); err != nil {
-				logger.Log.Error("error get metric", zap.Error(err))
-				return err
+			if errScan := rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value); errScan != nil {
+				logger.Log.Error("error get metric", zap.Error(errScan))
+				return errScan
 			}
 			metrics = append(metrics, metric)
 		}
@@ -118,20 +131,28 @@ func (s *DBStorage) UpdateAll(ctx context.Context, metrics []model.Metric) error
 			logger.Log.Error("error begin transaction", zap.Error(err))
 			return err
 		}
-		defer tx.Rollback()
+		defer func() {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				logger.Log.Error("error rollback transaction", zap.Error(rollbackErr))
+			}
+		}()
 
 		stmt, err := tx.PrepareContext(ctx, insertMetric)
 		if err != nil {
 			logger.Log.Error("error prepare statement", zap.Error(err))
 			return err
 		}
-		defer stmt.Close()
+		defer func() {
+			if closeErr := stmt.Close(); closeErr != nil {
+				logger.Log.Error("error close statement", zap.Error(closeErr))
+			}
+		}()
 
 		for _, m := range metrics {
-			_, err := stmt.ExecContext(ctx, m.ID, m.MType, m.Delta, m.Value)
-			if err != nil {
-				logger.Log.Error("error exec statement", zap.Error(err))
-				return err
+			_, errExec := stmt.ExecContext(ctx, m.ID, m.MType, m.Delta, m.Value)
+			if errExec != nil {
+				logger.Log.Error("error exec statement", zap.Error(errExec))
+				return errExec
 			}
 		}
 

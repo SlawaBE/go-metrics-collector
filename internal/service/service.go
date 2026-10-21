@@ -5,9 +5,11 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
+	"go.uber.org/zap"
 )
 
 // MetricsService encapsulates the business logic for working with metrics
@@ -34,7 +36,9 @@ func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) 
 	}
 	err := m.storage.UpdateMetric(ctx, metric)
 	if err == nil && m.saver != nil {
-		m.saver.SaveSync()
+		if syncErr := m.saver.SaveSync(); syncErr != nil {
+			logger.Log.Error("error saving metric to file", zap.Error(syncErr))
+		}
 	}
 	return err
 }
@@ -44,7 +48,9 @@ func (m *MetricsService) UpdateMetric(ctx context.Context, metric model.Metric) 
 func (m *MetricsService) UpdateMetrics(ctx context.Context, metrics []model.Metric) error {
 	err := m.storage.UpdateAll(ctx, metrics)
 	if err == nil && m.saver != nil {
-		m.saver.SaveSync()
+		if syncErr := m.saver.SaveSync(); syncErr != nil {
+			logger.Log.Error("error saving metrics to file", zap.Error(syncErr))
+		}
 	}
 	return err
 }
@@ -77,7 +83,6 @@ func (m *MetricsService) List(ctx context.Context) ([]string, error) {
 		case model.Gauge:
 			res[i] = v.ID + ": " + utils.ConvertGauge(*v.Value)
 		}
-
 	}
 
 	return res, nil

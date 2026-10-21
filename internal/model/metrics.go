@@ -17,6 +17,7 @@ const (
 // Delta and Value are declared as pointers to distinguish the value 0 from an
 // unset value and, consequently, to avoid encoding it into the JSON structure
 // (the fields are marked with omitempty).
+// generate:reset
 type Metric struct {
 	// ID is the unique metric name.
 	ID string `json:"id"`
@@ -60,6 +61,7 @@ func (m *Metric) String() string {
 }
 
 // MetricRequest describes a request to fetch a metric by its identifier.
+// generate:reset
 type MetricRequest struct {
 	// ID is the unique metric name.
 	ID string `json:"id"`

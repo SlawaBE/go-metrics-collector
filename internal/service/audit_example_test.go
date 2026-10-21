@@ -10,8 +10,8 @@ import (
 // memoryAuditSubscriber collects delivered audit events in a thread-safe slice
 // so that an example can assert on them deterministically.
 type memoryAuditSubscriber struct {
-	mu     sync.Mutex
 	events []model.AuditEvent
+	mu     sync.Mutex
 }
 
 func (s *memoryAuditSubscriber) Name() string { return "memoryAuditSubscriber" }

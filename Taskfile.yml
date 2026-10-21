@@ -8,10 +8,16 @@ vars:
   SERVER_BINARY: cmd/server/server{{.EXE}}
   AGENT_BINARY: cmd/agent/agent{{.EXE}}
   HASHER_BINARY: cmd/hasher/hasher{{.EXE}}
+  STATICLINT_BINARY: cmd/staticlint/staticlint{{.EXE}}
+  RESET_BINARY: cmd/reset/reset{{.EXE}}
   STATICTEST_BINARY: statictest{{.EXE}}
   LOG_DIR: logs
   TEMP_FILE: tempfile
   AUDIT_FILE: audit.log
+  DATE:
+    sh: date '+%Y.%m.%d'
+  COMMIT:
+    sh: git rev-parse HEAD
 
 tasks:
   clean:
@@ -20,6 +26,8 @@ tasks:
       - rm -f {{.SERVER_BINARY}}
       - rm -f {{.AGENT_BINARY}}
       - rm -f {{.HASHER_BINARY}}
+      - rm -f {{.STATICLINT_BINARY}}
+      - rm -f {{.RESET_BINARY}}
       - rm -rf {{.LOG_DIR}}
       - rm -f {{.TEMP_FILE}}
       - rm -f {{.AUDIT_FILE}}
@@ -27,7 +35,12 @@ tasks:
   build-server:
     desc: Build server
     cmds:
-      - go build -o {{.SERVER_BINARY}} ./cmd/server/
+      - >
+        go build
+        -ldflags "-X main.buildVersion={{default "" .VERSION}}
+        -X 'main.buildDate={{.DATE}}'
+        -X main.buildCommit={{.COMMIT}}"
+        -o {{.SERVER_BINARY}} ./cmd/server/
     sources:
       - "**/*.go"
     generates:
@@ -36,7 +49,12 @@ tasks:
   build-agent:
     desc: Build agent
     cmds:
-      - go build -o {{.AGENT_BINARY}} ./cmd/agent/
+      - >
+        go build
+        -ldflags "-X main.buildVersion={{default "" .VERSION}}
+        -X 'main.buildDate={{.DATE}}'
+        -X main.buildCommit={{.COMMIT}}"
+        -o {{.AGENT_BINARY}} ./cmd/agent/
     sources:
       - "**/*.go"
     generates:
@@ -50,6 +68,38 @@ tasks:
       - "**/*.go"
     generates:
       - "{{.HASHER_BINARY}}"
+
+  build-staticlint:
+    desc: Build staticlint (multichecker)
+    cmds:
+      - go build -o {{.STATICLINT_BINARY}} ./cmd/staticlint/
+    sources:
+      - "**/*.go"
+    generates:
+      - "{{.STATICLINT_BINARY}}"
+
+  staticlint:
+    desc: Run staticlint (multichecker) on the project
+    deps:
+      - build-staticlint
+    cmds:
+      - ./{{.STATICLINT_BINARY}} ./...
+
+  build-reset:
+    desc: Build reset (code generator)
+    cmds:
+      - go build -o {{.RESET_BINARY}} ./cmd/reset/
+    sources:
+      - "**/*.go"
+    generates:
+      - "{{.RESET_BINARY}}"
+
+  reset:
+    desc: Run Reset() code generation
+    deps:
+      - build-reset
+    cmds:
+      - ./{{.RESET_BINARY}} .
 
   test:
     desc: Run tests
@@ -81,14 +131,18 @@ tasks:
 
   build:
     desc: Build all binaries
-    deps: 
+    deps:
       - build-server
       - build-agent
+      - build-hasher
+      - build-staticlint
+      - build-reset
 
   test-all:
     desc: Run all test
     cmds:
       - task vet
+      - task staticlint
       - task test
       - task autotest
 

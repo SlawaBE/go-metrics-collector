@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,8 +15,10 @@ import (
 
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
 // the reporter, which run until a shutdown signal is received.
-func Run(config config.Config) {
-	logger.Initialize("info")
+func Run(config config.Config) error {
+	if err := logger.Initialize("info"); err != nil {
+		return fmt.Errorf("error initializing logger: %w", err)
+	}
 
 	storage := storage.NewMemStorage()
 	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
@@ -42,4 +45,5 @@ func Run(config config.Config) {
 
 	wg.Wait()
 	logger.Log.Info("Agent stopped")
+	return nil
 }

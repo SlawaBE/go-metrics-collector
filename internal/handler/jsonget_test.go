@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetMetricHandler_ServeHTTP(t *testing.T) {
@@ -25,8 +26,8 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 		json   string
 	}
 	type output struct {
-		statusCode int
 		value      string
+		statusCode int
 	}
 	tests := []struct {
 		name string
@@ -152,7 +153,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.data.metric != nil {
-				stor.UpdateMetric(context.Background(), *tt.data.metric)
+				require.NoError(t, stor.UpdateMetric(context.Background(), *tt.data.metric))
 			}
 			url := "/value"
 
@@ -171,7 +172,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				return
 			}
 
-			json.Unmarshal(resp.Body(), &metric)
+			require.NoError(t, json.Unmarshal(resp.Body(), &metric))
 			assert.Equal(t, tt.data.id, metric.ID)
 			assert.Equal(t, tt.data.mType, metric.MType)
 			if metric.MType == "counter" {

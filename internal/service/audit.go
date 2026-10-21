@@ -25,13 +25,13 @@ import (
 //
 // Shutdown drains all queued events before closing the registered subscribers.
 type AuditService struct {
-	subscribers []AuditSubscriber
 	events      chan model.AuditEvent
+	subscribers []AuditSubscriber
 
 	wg        sync.WaitGroup
 	mu        sync.RWMutex
-	closed    bool
 	closeOnce sync.Once
+	closed    bool
 }
 
 // NewAuditService creates an AuditService with the specified event queue size.
@@ -235,8 +235,8 @@ func (f *FileAuditSubscriber) Notify(event model.AuditEvent) error {
 
 // HTTPAuditSubscriber sends audit events to a remote HTTP endpoint.
 type HTTPAuditSubscriber struct {
-	url    string
 	client *http.Client
+	url    string
 }
 
 func auditTransport() *http.Transport {
@@ -298,7 +298,11 @@ func (h *HTTPAuditSubscriber) Notify(event model.AuditEvent) error {
 	if err != nil {
 		return fmt.Errorf("http request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			logger.Log.Error("error closing audit response body", zap.Error(err))
+		}
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("unexpected http status: %d", resp.StatusCode)
