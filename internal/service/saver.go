@@ -15,9 +15,9 @@ import (
 // JSONFileMetricSaver persists metrics to a file in JSON format, both
 // synchronously and with a configurable interval.
 type JSONFileMetricSaver struct {
-	interval int
-	fileName string
 	storage  storage.Storage
+	fileName string
+	interval int
 }
 
 // NewJSONFileMetricSaver creates a metrics saver: with interval == 0 saving is

@@ -66,7 +66,7 @@ func BenchmarkJSONGetMetricHandler(b *testing.B) {
 	body := []byte(`{"id":"bench","type":"gauge"}`)
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		req := httptest.NewRequest(http.MethodPost, "/value", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()

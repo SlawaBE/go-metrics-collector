@@ -2,17 +2,31 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/buildinfo"
 	"github.com/SlawaBE/go-metrics-collector/internal/server"
 	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	buildinfo.Print(buildVersion, buildDate, buildCommit)
+	if err := run(); err != nil {
+		log.Fatalf("Error running server: %v", err)
+	}
+}
+
+func run() error {
 	conf, err := config.ReadConfig()
 	if err != nil {
-		fmt.Println("Error reading configuration")
-		os.Exit(1)
+		return fmt.Errorf("error reading configuration: %w", err)
 	}
-	server.Run(conf)
+
+	return server.Run(conf)
 }

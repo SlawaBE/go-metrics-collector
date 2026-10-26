@@ -141,10 +141,11 @@ func TestMetrics_GetRuntimeMetrics(t *testing.T) {
 			assert.True(t, true, ok)
 			assert.Equal(t, tt.name, m.ID)
 			assert.Equal(t, tt.mType, m.MType)
-			if tt.mType == model.Gauge {
+			switch tt.mType {
+			case model.Gauge:
 				assert.Nil(t, m.Delta)
 				assert.NotNil(t, m.Value)
-			} else if tt.mType == model.Counter {
+			case model.Counter:
 				assert.NotNil(t, m.Delta)
 				assert.Nil(t, m.Value)
 			}
