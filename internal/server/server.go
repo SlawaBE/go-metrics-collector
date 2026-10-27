@@ -150,12 +150,19 @@ func Run(config config.Config) error {
 	if config.Key != "" {
 		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
 	}
-	gzipper := middleware.GZip(r)
-	requestLogger := middleware.RequestLogger(gzipper)
+	r = middleware.GZip(r)
+	if config.CryptoKey != "" {
+		decryptor, err := middleware.NewDecryptor(config.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("error initializing decryptor: %w", err)
+		}
+		r = decryptor.MiddlewareDecryptor(r)
+	}
+	r = middleware.RequestLogger(r)
 
 	httpServer := &http.Server{
 		Addr:    config.ServerAddress,
-		Handler: requestLogger,
+		Handler: r,
 	}
 
 	shutdownDone := make(chan struct{})
