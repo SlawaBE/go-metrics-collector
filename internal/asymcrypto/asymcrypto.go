@@ -120,9 +120,13 @@ func readPrivateKey(fileName string) (*rsa.PrivateKey, error) {
 	if privateKeyPemBlock == nil {
 		return nil, errors.New("failed to decode PEM block containing private key")
 	}
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyPemBlock.Bytes)
+	privateKeyAny, err := x509.ParsePKCS8PrivateKey(privateKeyPemBlock.Bytes)
 	if err != nil {
 		return nil, err
+	}
+	privateKey, ok := privateKeyAny.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("decoded key is not an RSA private key")
 	}
 	return privateKey, nil
 }

@@ -47,12 +47,16 @@ func generateTestKeys(t *testing.T) (certPath, keyPath string) {
 	keyPath = filepath.Join(dir, "key.pem")
 
 	certPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	if err := os.WriteFile(certPath, certPem, 0644); err != nil {
-		t.Fatal(err)
+	if writeErr := os.WriteFile(certPath, certPem, 0644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatalf("failed to marshal key: %v", err)
 	}
 	keyPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(priv),
+		Type:  "PRIVATE KEY",
+		Bytes: keyBytes,
 	})
 	if err := os.WriteFile(keyPath, keyPem, 0600); err != nil {
 		t.Fatal(err)
