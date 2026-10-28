@@ -9,7 +9,7 @@ type AuditEvent struct {
 	IPAddress string `json:"ip_address"`
 	// Metrics is the list of metric names affected by the event.
 	Metrics []string `json:"metrics"`
-	// Timestamp - Unix-время возникновения события.
+	// Timestamp - Unix-time of event.
 	Timestamp int64 `json:"ts"`
 }
 

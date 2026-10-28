@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
@@ -20,6 +22,7 @@ import (
 // via POST /updates, using a pool of workers.
 type Reporter struct {
 	storage        Storage
+	rsaEncryptor   *asymcrypto.RSAEncryptor
 	client         *resty.Client
 	secretKey      []byte
 	reportInterval int
@@ -41,9 +44,10 @@ var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.
 
 // NewReporter creates a reporter that sends metrics to the given address at the
 // given interval, signature key and worker limit.
-func NewReporter(storage Storage, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
+func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
 	return &Reporter{
 		storage:        storage,
+		rsaEncryptor:   rsaEncryptor,
 		reportInterval: reportInterval,
 		client:         httpClient("http://" + reportAddress),
 		secretKey:      []byte(secretKey),
@@ -122,6 +126,16 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 	if len(r.secretKey) > 0 {
 		sign := checksum.Sign(jsonData, r.secretKey)
 		req.SetHeader("HashSHA256", hex.EncodeToString(sign))
+	}
+
+	if r.rsaEncryptor != nil {
+		hct, encErr := r.rsaEncryptor.Encrypt(data)
+		if encErr != nil {
+			return fmt.Errorf("error encrypting metrics: %v", encErr)
+		}
+		data = hct.CipherText
+		req.SetHeader("X-Nonce", base64.StdEncoding.EncodeToString(hct.Nonce))
+		req.SetHeader("X-Encrypted-Key", base64.StdEncoding.EncodeToString(hct.EncryptedKey))
 	}
 
 	res, err := req.SetBody(data).

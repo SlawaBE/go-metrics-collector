@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
+	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 )
@@ -16,14 +17,22 @@ import (
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
 // the reporter, which run until a shutdown signal is received.
 func Run(config config.Config) error {
-	if err := logger.Initialize("info"); err != nil {
+	err := logger.Initialize("info")
+	if err != nil {
 		return fmt.Errorf("error initializing logger: %w", err)
 	}
 
 	storage := storage.NewMemStorage()
 	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
 	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval)
-	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
+	var rsaEncryptor *asymcrypto.RSAEncryptor
+	if config.CryptoKey != "" {
+		rsaEncryptor, err = asymcrypto.NewRSAEncryptor(config.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("error initializing rsaEncryptor: %w", err)
+		}
+	}
+	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
