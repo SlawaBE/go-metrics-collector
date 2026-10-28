@@ -25,7 +25,7 @@ type Config struct {
 	AuditURL string `env:"AUDIT_URL"`
 	// ProfileAddress is the HTTP profileing server address and port.
 	ProfileAddress string `env:"PROFILE_ADDRESS"`
-	// CryptoKey is the path to file with private key for decrypt agent's reports
+	// CryptoKey is the path to file with private key for decryption agent's reports
 	CryptoKey string `env:"CRYPTO_KEY"`
 	// StoreInterval is the interval (in seconds) for saving metrics to a file.
 	StoreInterval int `env:"STORE_INTERVAL"`
@@ -53,7 +53,7 @@ func ReadConfig() (Config, error) {
 	flag.IntVar(&config.AuditQueueSize, "audit-queue-size", 100, "size of the audit event queue")
 	flag.BoolVar(&config.ProfileEnabled, "p", false, "enable profiling")
 	flag.StringVar(&config.ProfileAddress, "pa", "localhost:8085", "address and port to run profile server")
-	flag.StringVar(&config.CryptoKey, "crypto-key", "", "path to file with private key")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "path to file with private key for decryption agent's reports")
 
 	flag.Parse()
 

@@ -15,7 +15,7 @@ type Config struct {
 	ServerAddress string `env:"ADDRESS"`
 	// Key is the secret key for signing requests with HMAC SHA-256.
 	Key string `env:"KEY"`
-	// CryptoKey is the path to file with public key for encrypt reports
+	// CryptoKey is the path to file with public key for encryption reports
 	CryptoKey string `env:"CRYPTO_KEY"`
 	// PollInterval is the metrics polling interval (in seconds).
 	PollInterval int `env:"POLL_INTERVAL"`
@@ -35,7 +35,7 @@ func ReadConfig() (Config, error) {
 	flag.IntVar(&config.ReportInterval, "r", 10, "metrics report interval")
 	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
 	flag.IntVar(&config.RateLimit, "l", 1, "rate limit for sending requests to server")
-	flag.StringVar(&config.CryptoKey, "crypto-key", "", "path to file with public key")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "path to file with public key for encryption reports")
 
 	flag.Parse()
 

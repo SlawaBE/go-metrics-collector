@@ -131,7 +131,7 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 	if r.rsaEncryptor != nil {
 		hct, encErr := r.rsaEncryptor.Encrypt(data)
 		if encErr != nil {
-			return fmt.Errorf("error encrypting metrics: %v", err)
+			return fmt.Errorf("error encrypting metrics: %v", encErr)
 		}
 		data = hct.CipherText
 		req.SetHeader("X-Nonce", base64.StdEncoding.EncodeToString(hct.Nonce))
