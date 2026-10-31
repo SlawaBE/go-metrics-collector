@@ -3,46 +3,123 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/caarlos0/env/v11"
+)
+
+const (
+	defaultServerAddress  = "localhost:8080"
+	defaultPollInterval   = 2
+	defaultReportInterval = 10
+	defaultKey            = ""
+	defaultRateLimit      = 1
+	defaultCryptoKey      = ""
+	defaultConfig         = ""
 )
 
 // Config describes the metrics collection agent startup parameters.
 // generate:reset
 type Config struct {
 	// ServerAddress is the metrics server address and port.
-	ServerAddress string `env:"ADDRESS"`
+	ServerAddress string `env:"ADDRESS" json:"address"`
 	// Key is the secret key for signing requests with HMAC SHA-256.
-	Key string `env:"KEY"`
+	Key string `env:"KEY" json:"key"`
 	// CryptoKey is the path to file with public key for encryption reports
-	CryptoKey string `env:"CRYPTO_KEY"`
+	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
+	// ConfigFile is the path to config json-file
+	Config string `env:"CONFIG" json:"-"`
 	// PollInterval is the metrics polling interval (in seconds).
-	PollInterval int `env:"POLL_INTERVAL"`
+	PollInterval int `env:"POLL_INTERVAL" json:"poll_interval"`
 	// ReportInterval is the interval (in seconds) for sending reports to the server.
-	ReportInterval int `env:"REPORT_INTERVAL"`
+	ReportInterval int `env:"REPORT_INTERVAL" json:"report_interval"`
 	// RateLimit is the limit of workers sending requests to the server.
-	RateLimit int `env:"RATE_LIMIT"`
+	RateLimit int `env:"RATE_LIMIT" json:"rate_limit"`
 }
 
 // ReadConfig populates the configuration from command-line flags and
 // environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
-	var config Config
+	var flagConfig Config
 
-	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "address and port of metric server")
-	flag.IntVar(&config.PollInterval, "p", 2, "metrics polling interval")
-	flag.IntVar(&config.ReportInterval, "r", 10, "metrics report interval")
-	flag.StringVar(&config.Key, "k", "", "key for signing request with HMAC SHA-256")
-	flag.IntVar(&config.RateLimit, "l", 1, "rate limit for sending requests to server")
-	flag.StringVar(&config.CryptoKey, "crypto-key", "", "path to file with public key for encryption reports")
+	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port of metric server")
+	flag.IntVar(&flagConfig.PollInterval, "p", defaultPollInterval, "metrics polling interval")
+	flag.IntVar(&flagConfig.ReportInterval, "r", defaultReportInterval, "metrics report interval")
+	flag.StringVar(&flagConfig.Key, "k", defaultKey, "key for signing request with HMAC SHA-256")
+	flag.IntVar(&flagConfig.RateLimit, "l", defaultRateLimit, "rate limit for sending requests to server")
+	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with public key for encryption reports")
+
+	flag.StringVar(&flagConfig.Config, "c", defaultConfig, "path to file with config")
+	flag.StringVar(&flagConfig.Config, "config", defaultConfig, "path to file with config")
 
 	flag.Parse()
 
+	setFlags := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { setFlags[f.Name] = true })
+
+	configPath := ""
+	if setFlags["c"] {
+		configPath = flagConfig.Config
+	}
+	if setFlags["config"] {
+		configPath = flagConfig.Config
+	}
+	if v, ok := os.LookupEnv("CONFIG"); ok && v != "" {
+		configPath = v
+	}
+
+	config := Config{
+		ServerAddress:  defaultServerAddress,
+		Key:            defaultKey,
+		CryptoKey:      defaultCryptoKey,
+		PollInterval:   defaultPollInterval,
+		ReportInterval: defaultReportInterval,
+		RateLimit:      defaultRateLimit,
+	}
+	if configPath != "" {
+		if err := loadJSON(configPath, &config); err != nil {
+			return config, fmt.Errorf("load config file %q: %w", configPath, err)
+		}
+	}
+
+	if setFlags["a"] {
+		config.ServerAddress = flagConfig.ServerAddress
+	}
+	if setFlags["k"] {
+		config.Key = flagConfig.Key
+	}
+	if setFlags["crypto-key"] {
+		config.CryptoKey = flagConfig.CryptoKey
+	}
+	if setFlags["p"] {
+		config.PollInterval = flagConfig.PollInterval
+	}
+	if setFlags["r"] {
+		config.ReportInterval = flagConfig.ReportInterval
+	}
+	if setFlags["l"] {
+		config.RateLimit = flagConfig.RateLimit
+	}
+	config.Config = configPath
+
 	err := env.Parse(&config)
 	if err != nil {
-		return config, err
+		return config, fmt.Errorf("error parse environment variables: %w", err)
 	}
 
 	return config, nil
+}
+
+func loadJSON(path string, cfg *Config) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return err
+	}
+	return nil
 }
