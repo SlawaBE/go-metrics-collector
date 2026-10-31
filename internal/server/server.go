@@ -168,7 +168,7 @@ func Run(config config.Config) error {
 	shutdownDone := make(chan struct{})
 	go func() {
 		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		<-signalChan
 
 		logger.Log.Info("Shutdown signal received")
