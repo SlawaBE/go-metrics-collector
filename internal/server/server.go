@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -86,8 +85,8 @@ func Run(config config.Config) error {
 	var database *sql.DB
 	var metricsService *service.MetricsService
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	if config.DatabaseDSN != "" {
 		var err error
@@ -164,37 +163,33 @@ func Run(config config.Config) error {
 		Handler: r,
 	}
 
-	shutdownDone := make(chan struct{})
 	go func() {
-		sigCtx, sigStop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		defer sigStop()
-
-		<-sigCtx.Done()
-
-		logger.Log.Info("Shutdown signal received")
-		cancel()
-
-		shutdownTimeout, shutdownTimeoutCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownTimeoutCancel()
-
-		if err := httpServer.Shutdown(shutdownTimeout); err != nil {
-			logger.Log.Error("Error during server shutdown", zap.Error(err))
+		logger.Log.Info("Server started")
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Log.Error("Server error", zap.Error(err))
 		}
-		if profileServer != nil {
-			if err := profileServer.Shutdown(shutdownTimeout); err != nil {
-				logger.Log.Error("Error during profile server shutdown", zap.Error(err))
-			}
-		}
-		auditService.Shutdown()
-		close(shutdownDone)
 	}()
 
-	err := httpServer.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal(err)
+	<-ctx.Done()
+	logger.Log.Info("Shutdown signal received")
+
+	stop()
+
+	shutdownTimeout, shutdownTimeoutCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownTimeoutCancel()
+
+	if err := httpServer.Shutdown(shutdownTimeout); err != nil {
+		logger.Log.Error("Error during server shutdown", zap.Error(err))
 	}
 
-	<-shutdownDone
+	if profileServer != nil {
+		if err := profileServer.Shutdown(shutdownTimeout); err != nil {
+			logger.Log.Error("Error during profile server shutdown", zap.Error(err))
+		}
+	}
+
+	auditService.Shutdown()
+
 	logger.Log.Info("Server stopped")
 	return nil
 }
