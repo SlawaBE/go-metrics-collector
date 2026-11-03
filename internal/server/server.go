@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -68,7 +67,7 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 // listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) error {
 	if err := logger.Initialize("info"); err != nil {
-		return fmt.Errorf("error initializing logger: %v", err)
+		return fmt.Errorf("error initializing logger: %w", err)
 	}
 
 	var profileServer *http.Server
@@ -167,20 +166,22 @@ func Run(config config.Config) error {
 
 	shutdownDone := make(chan struct{})
 	go func() {
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		<-signalChan
+		sigCtx, sigStop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		defer sigStop()
+
+		<-sigCtx.Done()
 
 		logger.Log.Info("Shutdown signal received")
 		cancel()
 
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownCancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		shutdownTimeout, shutdownTimeoutCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownTimeoutCancel()
+
+		if err := httpServer.Shutdown(shutdownTimeout); err != nil {
 			logger.Log.Error("Error during server shutdown", zap.Error(err))
 		}
 		if profileServer != nil {
-			if err := profileServer.Shutdown(shutdownCtx); err != nil {
+			if err := profileServer.Shutdown(shutdownTimeout); err != nil {
 				logger.Log.Error("Error during profile server shutdown", zap.Error(err))
 			}
 		}

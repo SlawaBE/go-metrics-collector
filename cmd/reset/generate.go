@@ -115,7 +115,7 @@ func processDir(dir string) error {
 
 	formattedContent, err := format.Source([]byte(content))
 	if err != nil {
-		return fmt.Errorf("error formatting source: %v", err)
+		return fmt.Errorf("error formatting source: %w", err)
 	}
 	return writeFile(dir, "reset.gen.go", formattedContent)
 }

@@ -14,12 +14,12 @@ import (
 type Poller struct {
 	storage      storage.Storage
 	getMetrics   func() []model.Metric
-	pollInterval int
+	pollInterval time.Duration
 }
 
 // NewPoller creates a poller with the given storage, polling interval and
 // metric collection function.
-func NewPoller(storage storage.Storage, pollInterval int, getMetrics func() []model.Metric) *Poller {
+func NewPoller(storage storage.Storage, pollInterval time.Duration, getMetrics func() []model.Metric) *Poller {
 	return &Poller{
 		storage:      storage,
 		pollInterval: pollInterval,
@@ -29,20 +29,20 @@ func NewPoller(storage storage.Storage, pollInterval int, getMetrics func() []mo
 
 // NewRuntimeMetricsPoller creates a poller for metrics obtained from the
 // runtime.
-func NewRuntimeMetricsPoller(storage storage.Storage, pollInterval int) *Poller {
+func NewRuntimeMetricsPoller(storage storage.Storage, pollInterval time.Duration) *Poller {
 	return NewPoller(storage, pollInterval, func() []model.Metric { return GetRuntimeMetrics().convertToList() })
 }
 
 // NewGopsutilMetricsPoller creates a poller for metrics obtained via gopsutil
 // (memory and CPU).
-func NewGopsutilMetricsPoller(storage storage.Storage, pollInterval int) *Poller {
+func NewGopsutilMetricsPoller(storage storage.Storage, pollInterval time.Duration) *Poller {
 	return NewPoller(storage, pollInterval, func() []model.Metric { return GetGopsutilsMetrics().convertToList() })
 }
 
 // Run starts the cyclic metric collection at the polling interval until the
 // context is cancelled.
 func (p *Poller) Run(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(p.pollInterval) * time.Second)
+	ticker := time.NewTicker(p.pollInterval)
 	for {
 		select {
 		case <-ctx.Done():

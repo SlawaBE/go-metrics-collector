@@ -25,7 +25,7 @@ type Reporter struct {
 	rsaEncryptor   *asymcrypto.RSAEncryptor
 	client         *resty.Client
 	secretKey      []byte
-	reportInterval int
+	reportInterval time.Duration
 	rateLimit      int
 }
 
@@ -44,7 +44,7 @@ var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.
 
 // NewReporter creates a reporter that sends metrics to the given address at the
 // given interval, signature key and worker limit.
-func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
+func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		rsaEncryptor:   rsaEncryptor,
@@ -67,7 +67,7 @@ func (r *Reporter) Run(ctx context.Context) {
 		})
 	}
 
-	ticker := time.NewTicker(time.Duration(r.reportInterval) * time.Second)
+	ticker := time.NewTicker(r.reportInterval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -113,12 +113,12 @@ func (r *Reporter) Report() {
 func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
 	data, err := gzip.Compress(jsonData)
 	if err != nil {
-		return fmt.Errorf("error compress metrics: %v", err)
+		return fmt.Errorf("error compress metrics: %w", err)
 	}
 
 	req := r.client.R().
@@ -131,7 +131,7 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 	if r.rsaEncryptor != nil {
 		hct, encErr := r.rsaEncryptor.Encrypt(data)
 		if encErr != nil {
-			return fmt.Errorf("error encrypting metrics: %v", encErr)
+			return fmt.Errorf("error encrypting metrics: %w", encErr)
 		}
 		data = hct.CipherText
 		req.SetHeader("X-Nonce", base64.StdEncoding.EncodeToString(hct.Nonce))
@@ -142,7 +142,7 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 		Post("/updates")
 
 	if err != nil {
-		return fmt.Errorf("error sending metrics: %v", err)
+		return fmt.Errorf("error sending metrics: %w", err)
 	}
 
 	if res.StatusCode() != http.StatusOK {

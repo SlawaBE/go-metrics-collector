@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -34,23 +33,17 @@ func Run(config config.Config) error {
 	}
 	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go func() {
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		<-signalChan
-
-		logger.Log.Info("Shutdown signal received")
-		cancel()
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() { defer wg.Done(); runtimePoller.Run(ctx) }()
 	go func() { defer wg.Done(); gopsutilPoller.Run(ctx) }()
 	go func() { defer wg.Done(); reporter.Run(ctx) }()
+
+	<-ctx.Done()
+	logger.Log.Info("Shutdown signal received")
 
 	wg.Wait()
 	logger.Log.Info("Agent stopped")

@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -20,7 +21,7 @@ const (
 	defaultAuditURL        = ""
 	defaultProfileAddress  = "localhost:8085"
 	defaultCryptoKey       = ""
-	defaultStoreInterval   = 300
+	defaultStoreInterval   = time.Second * 300
 	defaultAuditQueueSize  = 100
 	defaultRestore         = false
 	defaultProfileEnabled  = false
@@ -33,23 +34,23 @@ type Config struct {
 	// ServerAddress is the HTTP server address and port.
 	ServerAddress string `env:"ADDRESS" json:"address"`
 	// FileStoragePath is the path to the file used for persisting metrics.
-	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_pass"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"storage_pass"`
 	// DatabaseDSN is the PostgreSQL connection string; when set, the DB is used.
 	DatabaseDSN string `env:"DATABASE_DSN" json:"database_dsn"`
 	// Key is the secret key for signing and verifying HMAC SHA-256 requests.
-	Key string `env:"KEY" kson:"key"`
+	Key string `env:"KEY" json:"key"`
 	// AuditFile is the path to the file for writing audit events.
 	AuditFile string `env:"AUDIT_FILE" json:"audit_file"`
 	// AuditURL is the URL for sending audit events.
 	AuditURL string `env:"AUDIT_URL" json:"audit_url"`
-	// ProfileAddress is the HTTP profileing server address and port.
+	// ProfileAddress is the HTTP profiling server address and port.
 	ProfileAddress string `env:"PROFILE_ADDRESS" json:"profile_address"`
 	// CryptoKey is the path to file with private key for decryption agent's reports
 	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
 	// ConfigFile is the path to config json-file
 	Config string `env:"CONFIG" json:"-"`
 	// StoreInterval is the interval (in seconds) for saving metrics to a file.
-	StoreInterval int `env:"STORE_INTERVAL" json:"store_interval"`
+	StoreInterval time.Duration `env:"STORE_INTERVAL" json:"store_interval"`
 	// AuditQueueSize limits the size of the audit event queue.
 	AuditQueueSize int `env:"AUDIT_QUEUE_SIZE" json:"audit_queue_size"`
 	// Restore indicates whether to restore metrics from the file on startup.
@@ -71,7 +72,7 @@ func ReadConfig() (Config, error) {
 	flag.StringVar(&flagConfig.AuditURL, "audit-url", defaultAuditURL, "url for sending audit event")
 	flag.StringVar(&flagConfig.ProfileAddress, "pa", defaultProfileAddress, "address and port to run profile server")
 	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with private key for decryption agent's reports")
-	flag.IntVar(&flagConfig.StoreInterval, "i", defaultStoreInterval, "interval for saving metric to file")
+	flag.DurationVar(&flagConfig.StoreInterval, "i", defaultStoreInterval, "interval for saving metric to file")
 	flag.IntVar(&flagConfig.AuditQueueSize, "audit-queue-size", defaultAuditQueueSize, "size of the audit event queue")
 	flag.BoolVar(&flagConfig.Restore, "r", defaultRestore, "restore metric from file")
 	flag.BoolVar(&flagConfig.ProfileEnabled, "p", defaultProfileEnabled, "enable profiling")

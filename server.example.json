@@ -1,0 +1,14 @@
+{
+  "address": "localhost:8080",
+  "storage_pass": "storage.json",
+  "database_dsn": "",
+  "key": "",
+  "audit_file": "",
+  "audit_url": "",
+  "profile_address": "localhost:8085",
+  "crypto_key": "",
+  "store_interval": "300s",
+  "audit_queue_size": 100,
+  "restore": false,
+  "profile_enabled": false
+}
