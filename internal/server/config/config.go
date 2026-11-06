@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/utils/config"
 	"github.com/caarlos0/env/v11"
 )
 
@@ -21,7 +22,7 @@ const (
 	defaultAuditURL        = ""
 	defaultProfileAddress  = "localhost:8085"
 	defaultCryptoKey       = ""
-	defaultStoreInterval   = time.Second * 300
+	defaultStoreInterval   = config.Duration(time.Second * 300)
 	defaultAuditQueueSize  = 100
 	defaultRestore         = false
 	defaultProfileEnabled  = false
@@ -50,7 +51,7 @@ type Config struct {
 	// ConfigFile is the path to config json-file
 	Config string `env:"CONFIG" json:"-"`
 	// StoreInterval is the interval (in seconds) for saving metrics to a file.
-	StoreInterval time.Duration `env:"STORE_INTERVAL" json:"store_interval"`
+	StoreInterval config.Duration `env:"STORE_INTERVAL" json:"store_interval"`
 	// AuditQueueSize limits the size of the audit event queue.
 	AuditQueueSize int `env:"AUDIT_QUEUE_SIZE" json:"audit_queue_size"`
 	// Restore indicates whether to restore metrics from the file on startup.
@@ -62,7 +63,9 @@ type Config struct {
 // ReadConfig populates the configuration from command-line flags and
 // environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
-	var flagConfig Config
+	flagConfig := Config{
+		StoreInterval: defaultStoreInterval,
+	}
 
 	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port to run server")
 	flag.StringVar(&flagConfig.FileStoragePath, "f", defaultFileStoragePath, "file for saving metrics")
@@ -72,7 +75,7 @@ func ReadConfig() (Config, error) {
 	flag.StringVar(&flagConfig.AuditURL, "audit-url", defaultAuditURL, "url for sending audit event")
 	flag.StringVar(&flagConfig.ProfileAddress, "pa", defaultProfileAddress, "address and port to run profile server")
 	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with private key for decryption agent's reports")
-	flag.DurationVar(&flagConfig.StoreInterval, "i", defaultStoreInterval, "interval for saving metric to file")
+	flag.Var(&flagConfig.StoreInterval, "i", "interval for saving metric to file")
 	flag.IntVar(&flagConfig.AuditQueueSize, "audit-queue-size", defaultAuditQueueSize, "size of the audit event queue")
 	flag.BoolVar(&flagConfig.Restore, "r", defaultRestore, "restore metric from file")
 	flag.BoolVar(&flagConfig.ProfileEnabled, "p", defaultProfileEnabled, "enable profiling")

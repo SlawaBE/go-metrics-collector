@@ -117,7 +117,7 @@ func Run(config config.Config) error {
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
-		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
+		saver := service.NewJSONFileMetricSaver(config.StoreInterval.Duration(), config.FileStoragePath, storageInstance)
 		if config.Restore {
 			if err := saver.Load(); err != nil {
 				logger.Log.Error("error loading metrics from file", zap.Error(err))

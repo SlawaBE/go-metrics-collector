@@ -9,13 +9,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/utils/config"
 	"github.com/caarlos0/env/v11"
 )
 
 const (
 	defaultServerAddress  = "localhost:8080"
-	defaultPollInterval   = time.Second * 2
-	defaultReportInterval = time.Second * 10
+	defaultPollInterval   = config.Duration(time.Second * 2)
+	defaultReportInterval = config.Duration(time.Second * 10)
 	defaultKey            = ""
 	defaultRateLimit      = 1
 	defaultCryptoKey      = ""
@@ -34,9 +35,9 @@ type Config struct {
 	// ConfigFile is the path to config json-file
 	Config string `env:"CONFIG" json:"-"`
 	// PollInterval is the metrics polling interval (in seconds).
-	PollInterval time.Duration `env:"POLL_INTERVAL" json:"poll_interval"`
+	PollInterval config.Duration `env:"POLL_INTERVAL" json:"poll_interval"`
 	// ReportInterval is the interval (in seconds) for sending reports to the server.
-	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval"`
+	ReportInterval config.Duration `env:"REPORT_INTERVAL" json:"report_interval"`
 	// RateLimit is the limit of workers sending requests to the server.
 	RateLimit int `env:"RATE_LIMIT" json:"rate_limit"`
 }
@@ -44,11 +45,14 @@ type Config struct {
 // ReadConfig populates the configuration from command-line flags and
 // environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
-	var flagConfig Config
+	flagConfig := Config {
+		PollInterval: defaultPollInterval,
+		ReportInterval: defaultReportInterval,
+	}
 
 	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port of metric server")
-	flag.DurationVar(&flagConfig.PollInterval, "p", defaultPollInterval, "metrics polling interval")
-	flag.DurationVar(&flagConfig.ReportInterval, "r", defaultReportInterval, "metrics report interval")
+	flag.Var(&flagConfig.PollInterval, "p","metrics polling interval")
+	flag.Var(&flagConfig.ReportInterval, "r", "metrics report interval")
 	flag.StringVar(&flagConfig.Key, "k", defaultKey, "key for signing request with HMAC SHA-256")
 	flag.IntVar(&flagConfig.RateLimit, "l", defaultRateLimit, "rate limit for sending requests to server")
 	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with public key for encryption reports")

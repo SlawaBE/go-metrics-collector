@@ -22,8 +22,8 @@ func Run(config config.Config) error {
 	}
 
 	storage := storage.NewMemStorage()
-	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
-	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval)
+	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval.Duration())
+	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval.Duration())
 	var rsaEncryptor *asymcrypto.RSAEncryptor
 	if config.CryptoKey != "" {
 		rsaEncryptor, err = asymcrypto.NewRSAEncryptor(config.CryptoKey)
@@ -31,7 +31,7 @@ func Run(config config.Config) error {
 			return fmt.Errorf("error initializing rsaEncryptor: %w", err)
 		}
 	}
-	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
+	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval.Duration(), config.Key, config.RateLimit)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
