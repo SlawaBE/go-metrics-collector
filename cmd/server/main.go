@@ -24,7 +24,6 @@ func main() {
 
 func run() error {
 	conf, err := config.ReadConfig()
-	fmt.Println(conf)
 	if err != nil {
 		return fmt.Errorf("error reading configuration: %w", err)
 	}

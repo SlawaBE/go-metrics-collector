@@ -72,6 +72,7 @@ func (r *Reporter) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
+			close(jobs)
 			wg.Wait()
 			return
 		case <-ticker.C:
@@ -84,17 +85,12 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case metrics := <-jobs:
-			if len(metrics) == 0 {
-				continue
-			}
-			if err := r.sendMetrics(ctx, metrics); err != nil {
-				fmt.Println("Error sending metrics:", err)
-			}
+	for metrics := range jobs {
+		if len(metrics) == 0 {
+			continue
+		}
+		if err := r.sendMetrics(ctx, metrics); err != nil {
+			fmt.Println("Error sending metrics:", err)
 		}
 	}
 }
