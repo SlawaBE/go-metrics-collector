@@ -17,12 +17,12 @@ import (
 type JSONFileMetricSaver struct {
 	storage  storage.Storage
 	fileName string
-	interval int
+	interval time.Duration
 }
 
 // NewJSONFileMetricSaver creates a metrics saver: with interval == 0 saving is
 // synchronous, with a positive interval it happens in the background via a ticker.
-func NewJSONFileMetricSaver(interval int, fileName string, storage storage.Storage) *JSONFileMetricSaver {
+func NewJSONFileMetricSaver(interval time.Duration, fileName string, storage storage.Storage) *JSONFileMetricSaver {
 	return &JSONFileMetricSaver{
 		interval: interval,
 		fileName: fileName,
@@ -80,7 +80,7 @@ func (m *JSONFileMetricSaver) StartSync(ctx context.Context) {
 	if m.interval <= 0 {
 		return
 	}
-	ticker := time.NewTicker(time.Duration(m.interval) * time.Second)
+	ticker := time.NewTicker(m.interval)
 
 	go func() {
 		logger.Log.Info("Start sync")

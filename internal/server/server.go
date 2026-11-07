@@ -7,9 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -68,7 +66,7 @@ func InitRouter(service *service.MetricsService, database *sql.DB, auditPublishe
 // listens for incoming requests until a shutdown signal is received.
 func Run(config config.Config) error {
 	if err := logger.Initialize("info"); err != nil {
-		return fmt.Errorf("error initializing logger: %v", err)
+		return fmt.Errorf("error initializing logger: %w", err)
 	}
 
 	var profileServer *http.Server
@@ -87,8 +85,8 @@ func Run(config config.Config) error {
 	var database *sql.DB
 	var metricsService *service.MetricsService
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	if config.DatabaseDSN != "" {
 		var err error
@@ -119,7 +117,7 @@ func Run(config config.Config) error {
 		metricsService = service.NewMetricsService(storageInstance, nil)
 	} else {
 		storageInstance := storage.NewMemStorage()
-		saver := service.NewJSONFileMetricSaver(config.StoreInterval, config.FileStoragePath, storageInstance)
+		saver := service.NewJSONFileMetricSaver(config.StoreInterval.Duration(), config.FileStoragePath, storageInstance)
 		if config.Restore {
 			if err := saver.Load(); err != nil {
 				logger.Log.Error("error loading metrics from file", zap.Error(err))
@@ -150,43 +148,48 @@ func Run(config config.Config) error {
 	if config.Key != "" {
 		r = middleware.NewCheckSum(config.Key).CheckSumMiddleware(r)
 	}
-	gzipper := middleware.GZip(r)
-	requestLogger := middleware.RequestLogger(gzipper)
+	r = middleware.GZip(r)
+	if config.CryptoKey != "" {
+		decryptor, err := middleware.NewDecryptor(config.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("error initializing decryptor: %w", err)
+		}
+		r = decryptor.MiddlewareDecryptor(r)
+	}
+	r = middleware.RequestLogger(r)
 
 	httpServer := &http.Server{
 		Addr:    config.ServerAddress,
-		Handler: requestLogger,
+		Handler: r,
 	}
 
-	shutdownDone := make(chan struct{})
 	go func() {
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-		<-signalChan
-
-		logger.Log.Info("Shutdown signal received")
-		cancel()
-
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownCancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			logger.Log.Error("Error during server shutdown", zap.Error(err))
+		logger.Log.Info("Server started")
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Log.Error("Server error", zap.Error(err))
 		}
-		if profileServer != nil {
-			if err := profileServer.Shutdown(shutdownCtx); err != nil {
-				logger.Log.Error("Error during profile server shutdown", zap.Error(err))
-			}
-		}
-		auditService.Shutdown()
-		close(shutdownDone)
 	}()
 
-	err := httpServer.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal(err)
+	<-ctx.Done()
+	logger.Log.Info("Shutdown signal received")
+
+	stop()
+
+	shutdownTimeout, shutdownTimeoutCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownTimeoutCancel()
+
+	if err := httpServer.Shutdown(shutdownTimeout); err != nil {
+		logger.Log.Error("Error during server shutdown", zap.Error(err))
 	}
 
-	<-shutdownDone
+	if profileServer != nil {
+		if err := profileServer.Shutdown(shutdownTimeout); err != nil {
+			logger.Log.Error("Error during profile server shutdown", zap.Error(err))
+		}
+	}
+
+	auditService.Shutdown()
+
 	logger.Log.Info("Server stopped")
 	return nil
 }

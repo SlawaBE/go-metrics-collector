@@ -38,3 +38,6 @@ logs/
 storage.json
 tempfile
 audit.log
+server.json
+agent.json
+

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
@@ -20,9 +22,10 @@ import (
 // via POST /updates, using a pool of workers.
 type Reporter struct {
 	storage        Storage
+	rsaEncryptor   *asymcrypto.RSAEncryptor
 	client         *resty.Client
 	secretKey      []byte
-	reportInterval int
+	reportInterval time.Duration
 	rateLimit      int
 }
 
@@ -41,9 +44,10 @@ var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.
 
 // NewReporter creates a reporter that sends metrics to the given address at the
 // given interval, signature key and worker limit.
-func NewReporter(storage Storage, reportAddress string, reportInterval int, secretKey string, rateLimit int) *Reporter {
+func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int) *Reporter {
 	return &Reporter{
 		storage:        storage,
+		rsaEncryptor:   rsaEncryptor,
 		reportInterval: reportInterval,
 		client:         httpClient("http://" + reportAddress),
 		secretKey:      []byte(secretKey),
@@ -63,11 +67,12 @@ func (r *Reporter) Run(ctx context.Context) {
 		})
 	}
 
-	ticker := time.NewTicker(time.Duration(r.reportInterval) * time.Second)
+	ticker := time.NewTicker(r.reportInterval)
 	for {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
+			close(jobs)
 			wg.Wait()
 			return
 		case <-ticker.C:
@@ -80,17 +85,12 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case metrics := <-jobs:
-			if len(metrics) == 0 {
-				continue
-			}
-			if err := r.sendMetrics(ctx, metrics); err != nil {
-				fmt.Println("Error sending metrics:", err)
-			}
+	for metrics := range jobs {
+		if len(metrics) == 0 {
+			continue
+		}
+		if err := r.sendMetrics(ctx, metrics); err != nil {
+			fmt.Println("Error sending metrics:", err)
 		}
 	}
 }
@@ -109,12 +109,12 @@ func (r *Reporter) Report() {
 func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
 	data, err := gzip.Compress(jsonData)
 	if err != nil {
-		return fmt.Errorf("error compress metrics: %v", err)
+		return fmt.Errorf("error compress metrics: %w", err)
 	}
 
 	req := r.client.R().
@@ -124,11 +124,21 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 		req.SetHeader("HashSHA256", hex.EncodeToString(sign))
 	}
 
+	if r.rsaEncryptor != nil {
+		hct, encErr := r.rsaEncryptor.Encrypt(data)
+		if encErr != nil {
+			return fmt.Errorf("error encrypting metrics: %w", encErr)
+		}
+		data = hct.CipherText
+		req.SetHeader("X-Nonce", base64.StdEncoding.EncodeToString(hct.Nonce))
+		req.SetHeader("X-Encrypted-Key", base64.StdEncoding.EncodeToString(hct.EncryptedKey))
+	}
+
 	res, err := req.SetBody(data).
 		Post("/updates")
 
 	if err != nil {
-		return fmt.Errorf("error sending metrics: %v", err)
+		return fmt.Errorf("error sending metrics: %w", err)
 	}
 
 	if res.StatusCode() != http.StatusOK {

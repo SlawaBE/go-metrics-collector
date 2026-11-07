@@ -3,12 +3,12 @@ package agent
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/agent/config"
+	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 )
@@ -16,32 +16,34 @@ import (
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
 // the reporter, which run until a shutdown signal is received.
 func Run(config config.Config) error {
-	if err := logger.Initialize("info"); err != nil {
+	err := logger.Initialize("info")
+	if err != nil {
 		return fmt.Errorf("error initializing logger: %w", err)
 	}
 
 	storage := storage.NewMemStorage()
-	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval)
-	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval)
-	reporter := NewReporter(storage, config.ServerAddress, config.ReportInterval, config.Key, config.RateLimit)
+	runtimePoller := NewRuntimeMetricsPoller(storage, config.PollInterval.Duration())
+	gopsutilPoller := NewGopsutilMetricsPoller(storage, config.PollInterval.Duration())
+	var rsaEncryptor *asymcrypto.RSAEncryptor
+	if config.CryptoKey != "" {
+		rsaEncryptor, err = asymcrypto.NewRSAEncryptor(config.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("error initializing rsaEncryptor: %w", err)
+		}
+	}
+	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval.Duration(), config.Key, config.RateLimit)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go func() {
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-		<-signalChan
-
-		logger.Log.Info("Shutdown signal received")
-		cancel()
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() { defer wg.Done(); runtimePoller.Run(ctx) }()
 	go func() { defer wg.Done(); gopsutilPoller.Run(ctx) }()
 	go func() { defer wg.Done(); reporter.Run(ctx) }()
+
+	<-ctx.Done()
+	logger.Log.Info("Shutdown signal received")
 
 	wg.Wait()
 	logger.Log.Info("Agent stopped")

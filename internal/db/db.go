@@ -33,17 +33,17 @@ var migrationFiles embed.FS
 func RunMigrations(database *sql.DB, databaseDSN string) error {
 	srcDriver, err := iofs.New(migrationFiles, "migrations")
 	if err != nil {
-		return fmt.Errorf("error create source driver %v", err)
+		return fmt.Errorf("error create source driver %w", err)
 	}
 
 	_, err = postgres.WithInstance(database, &postgres.Config{})
 	if err != nil {
-		return fmt.Errorf("error create db driver %v", err)
+		return fmt.Errorf("error create db driver %w", err)
 	}
 
 	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, databaseDSN)
 	if err != nil {
-		return fmt.Errorf("error create source %v", err)
+		return fmt.Errorf("error create source %w", err)
 	}
 	defer func() {
 		if _, err := m.Close(); err != nil {
@@ -52,7 +52,7 @@ func RunMigrations(database *sql.DB, databaseDSN string) error {
 	}()
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("error migrate %v", err)
+		return fmt.Errorf("error migrate %w", err)
 	}
 	return nil
 }
