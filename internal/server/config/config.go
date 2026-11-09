@@ -27,6 +27,7 @@ const (
 	defaultRestore         = false
 	defaultProfileEnabled  = false
 	defaultConfig          = ""
+	defaultTrustedSubnet   = ""
 )
 
 // Config describes the metrics server startup parameters.
@@ -50,6 +51,9 @@ type Config struct {
 	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
 	// ConfigFile is the path to config json-file
 	Config string `env:"CONFIG" json:"-"`
+	// TrustedSubnet is a CIDR string; when set, agent requests must come from
+	// an IP within this subnet (checked via X-Real-IP header).
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 	// StoreInterval is the interval (in seconds) for saving metrics to a file.
 	StoreInterval config.Duration `env:"STORE_INTERVAL" json:"store_interval"`
 	// AuditQueueSize limits the size of the audit event queue.
@@ -75,6 +79,7 @@ func ReadConfig() (Config, error) {
 	flag.StringVar(&flagConfig.AuditURL, "audit-url", defaultAuditURL, "url for sending audit event")
 	flag.StringVar(&flagConfig.ProfileAddress, "pa", defaultProfileAddress, "address and port to run profile server")
 	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with private key for decryption agent's reports")
+	flag.StringVar(&flagConfig.TrustedSubnet, "t", defaultTrustedSubnet, "CIDR of trusted agent subnets")
 	flag.Var(&flagConfig.StoreInterval, "i", "interval for saving metric to file")
 	flag.IntVar(&flagConfig.AuditQueueSize, "audit-queue-size", defaultAuditQueueSize, "size of the audit event queue")
 	flag.BoolVar(&flagConfig.Restore, "r", defaultRestore, "restore metric from file")
@@ -112,6 +117,7 @@ func ReadConfig() (Config, error) {
 		AuditQueueSize:  defaultAuditQueueSize,
 		Restore:         defaultRestore,
 		ProfileEnabled:  defaultProfileEnabled,
+		TrustedSubnet:   defaultTrustedSubnet,
 	}
 	if configPath != "" {
 		if err := loadJSON(configPath, &config); err != nil {
@@ -142,6 +148,9 @@ func ReadConfig() (Config, error) {
 	}
 	if setFlags["crypto-key"] {
 		config.CryptoKey = flagConfig.CryptoKey
+	}
+	if setFlags["t"] {
+		config.TrustedSubnet = flagConfig.TrustedSubnet
 	}
 	if setFlags["i"] {
 		config.StoreInterval = flagConfig.StoreInterval

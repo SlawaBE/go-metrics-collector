@@ -67,7 +67,7 @@ func TestReporter_Report_Success(t *testing.T) {
 	require.NoError(t, stor.UpdateMetric(context.Background(), model.NewGaugeMetric("g1", 1.5)))
 
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(stor, nil, address, 1, secret, 2)
+	reporter := NewReporter(stor, nil, address, 1, secret, 2, "")
 
 	reporter.Report()
 
@@ -89,7 +89,7 @@ func TestReporter_Report_EmptyStorage(t *testing.T) {
 
 	stor := storage.NewMemStorage()
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(stor, nil, address, 1, "", 1)
+	reporter := NewReporter(stor, nil, address, 1, "", 1, "")
 
 	reporter.Report()
 }
@@ -101,7 +101,7 @@ func TestReporter_sendMetrics_ServerError(t *testing.T) {
 	defer srv.Close()
 
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(nil, nil, address, 1, "", 1)
+	reporter := NewReporter(nil, nil, address, 1, "", 1, "")
 
 	err := reporter.sendMetrics(context.Background(), []model.Metric{model.NewCounterMetric("c1", 10)})
 	assert.Error(t, err)
@@ -115,7 +115,7 @@ func TestReporter_sendMetrics_SuccessNoSignature(t *testing.T) {
 	defer srv.Close()
 
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(nil, nil, address, 1, "", 1)
+	reporter := NewReporter(nil, nil, address, 1, "", 1, "")
 
 	err := reporter.sendMetrics(context.Background(), []model.Metric{model.NewCounterMetric("c1", 10)})
 	assert.NoError(t, err)
@@ -135,7 +135,7 @@ func TestReporter_sendMetrics_WithSignature(t *testing.T) {
 	defer srv.Close()
 
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(nil, nil, address, 1, secret, 1)
+	reporter := NewReporter(nil, nil, address, 1, secret, 1, "")
 
 	require.NoError(t, reporter.sendMetrics(context.Background(), []model.Metric{model.NewCounterMetric("c1", 10)}))
 
@@ -256,7 +256,7 @@ func TestReporter_Report_Success_WithEncryption(t *testing.T) {
 	require.NoError(t, stor.UpdateMetric(context.Background(), model.NewGaugeMetric("g1", 1.5)))
 
 	address := strings.TrimPrefix(srv.URL, "http://")
-	reporter := NewReporter(stor, encryptor, address, 1, secret, 2)
+	reporter := NewReporter(stor, encryptor, address, 1, secret, 2, "")
 
 	reporter.Report()
 

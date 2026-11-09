@@ -24,6 +24,7 @@ type Reporter struct {
 	storage        Storage
 	rsaEncryptor   *asymcrypto.RSAEncryptor
 	client         *resty.Client
+	clientIP       string
 	secretKey      []byte
 	reportInterval time.Duration
 	rateLimit      int
@@ -44,7 +45,7 @@ var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.
 
 // NewReporter creates a reporter that sends metrics to the given address at the
 // given interval, signature key and worker limit.
-func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int) *Reporter {
+func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int, clientIP string) *Reporter {
 	return &Reporter{
 		storage:        storage,
 		rsaEncryptor:   rsaEncryptor,
@@ -52,6 +53,7 @@ func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportA
 		client:         httpClient("http://" + reportAddress),
 		secretKey:      []byte(secretKey),
 		rateLimit:      rateLimit,
+		clientIP:       clientIP,
 	}
 }
 
@@ -110,6 +112,10 @@ func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) erro
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	if r.clientIP != "" {
+		r.client.SetHeader("X-Real-IP", r.clientIP)
 	}
 
 	data, err := gzip.Compress(jsonData)

@@ -11,6 +11,8 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/utils"
+	"go.uber.org/zap"
 )
 
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
@@ -31,7 +33,11 @@ func Run(config config.Config) error {
 			return fmt.Errorf("error initializing rsaEncryptor: %w", err)
 		}
 	}
-	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval.Duration(), config.Key, config.RateLimit)
+	clientIP, ipErr := utils.LocalIPv4(config.ServerAddress)
+	if ipErr != nil {
+		logger.Log.Warn("failed to determine local IP, X-Real-IP header will not be set", zap.Error(ipErr))
+	}
+	reporter := NewReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval.Duration(), config.Key, config.RateLimit, clientIP)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()

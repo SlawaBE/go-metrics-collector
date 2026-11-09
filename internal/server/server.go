@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -155,6 +156,13 @@ func Run(config config.Config) error {
 			return fmt.Errorf("error initializing decryptor: %w", err)
 		}
 		r = decryptor.MiddlewareDecryptor(r)
+	}
+	if config.TrustedSubnet != "" {
+		_, ipNet, netErr := net.ParseCIDR(config.TrustedSubnet)
+		if netErr != nil {
+			return fmt.Errorf("invalid trusted_subnet CIDR: %w", netErr)
+		}
+		r = middleware.TrustedSubnetMiddleware(ipNet, r)
 	}
 	r = middleware.RequestLogger(r)
 

@@ -10,5 +10,6 @@
   "store_interval": "300s",
   "audit_queue_size": 100,
   "restore": false,
-  "profile_enabled": false
+  "profile_enabled": false,
+  "trusted_subnet": ""
 }
