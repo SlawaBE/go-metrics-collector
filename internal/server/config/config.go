@@ -14,20 +14,21 @@ import (
 )
 
 const (
-	defaultServerAddress   = "localhost:8080"
-	defaultFileStoragePath = "storage.json"
-	defaultDatabaseDSN     = ""
-	defaultKey             = ""
-	defaultAuditFile       = ""
-	defaultAuditURL        = ""
-	defaultProfileAddress  = "localhost:8085"
-	defaultCryptoKey       = ""
-	defaultStoreInterval   = config.Duration(time.Second * 300)
-	defaultAuditQueueSize  = 100
-	defaultRestore         = false
-	defaultProfileEnabled  = false
-	defaultConfig          = ""
-	defaultTrustedSubnet   = ""
+	defaultServerAddress     = "localhost:8080"
+	defaultGRPCServerAddress = "localhost:9090"
+	defaultFileStoragePath   = "storage.json"
+	defaultDatabaseDSN       = ""
+	defaultKey               = ""
+	defaultAuditFile         = ""
+	defaultAuditURL          = ""
+	defaultProfileAddress    = "localhost:8085"
+	defaultCryptoKey         = ""
+	defaultStoreInterval     = config.Duration(time.Second * 300)
+	defaultAuditQueueSize    = 100
+	defaultRestore           = false
+	defaultProfileEnabled    = false
+	defaultConfig            = ""
+	defaultTrustedSubnet     = ""
 )
 
 // Config describes the metrics server startup parameters.
@@ -35,6 +36,8 @@ const (
 type Config struct {
 	// ServerAddress is the HTTP server address and port.
 	ServerAddress string `env:"ADDRESS" json:"address"`
+	// GRPCServerAddress is the GRPC server address and port
+	GRPCServerAddress string `env:"GRPC_ADDRESS" json:"grpc_address"`
 	// FileStoragePath is the path to the file used for persisting metrics.
 	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"storage_pass"`
 	// DatabaseDSN is the PostgreSQL connection string; when set, the DB is used.
@@ -71,7 +74,8 @@ func ReadConfig() (Config, error) {
 		StoreInterval: defaultStoreInterval,
 	}
 
-	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port to run server")
+	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port to run HTTP server")
+	flag.StringVar(&flagConfig.GRPCServerAddress, "g", defaultGRPCServerAddress, "address and port to run GRPC server")
 	flag.StringVar(&flagConfig.FileStoragePath, "f", defaultFileStoragePath, "file for saving metrics")
 	flag.StringVar(&flagConfig.DatabaseDSN, "d", defaultDatabaseDSN, "database url")
 	flag.StringVar(&flagConfig.Key, "k", defaultKey, "key for signing request with HMAC SHA-256")
@@ -105,19 +109,20 @@ func ReadConfig() (Config, error) {
 	}
 
 	config := Config{
-		ServerAddress:   defaultServerAddress,
-		FileStoragePath: defaultFileStoragePath,
-		DatabaseDSN:     defaultDatabaseDSN,
-		Key:             defaultKey,
-		AuditFile:       defaultAuditFile,
-		AuditURL:        defaultAuditURL,
-		ProfileAddress:  defaultProfileAddress,
-		CryptoKey:       defaultCryptoKey,
-		StoreInterval:   defaultStoreInterval,
-		AuditQueueSize:  defaultAuditQueueSize,
-		Restore:         defaultRestore,
-		ProfileEnabled:  defaultProfileEnabled,
-		TrustedSubnet:   defaultTrustedSubnet,
+		ServerAddress:     defaultServerAddress,
+		GRPCServerAddress: defaultGRPCServerAddress,
+		FileStoragePath:   defaultFileStoragePath,
+		DatabaseDSN:       defaultDatabaseDSN,
+		Key:               defaultKey,
+		AuditFile:         defaultAuditFile,
+		AuditURL:          defaultAuditURL,
+		ProfileAddress:    defaultProfileAddress,
+		CryptoKey:         defaultCryptoKey,
+		StoreInterval:     defaultStoreInterval,
+		AuditQueueSize:    defaultAuditQueueSize,
+		Restore:           defaultRestore,
+		ProfileEnabled:    defaultProfileEnabled,
+		TrustedSubnet:     defaultTrustedSubnet,
 	}
 	if configPath != "" {
 		if err := loadJSON(configPath, &config); err != nil {
@@ -127,6 +132,9 @@ func ReadConfig() (Config, error) {
 
 	if setFlags["a"] {
 		config.ServerAddress = flagConfig.ServerAddress
+	}
+	if setFlags["g"] {
+		config.GRPCServerAddress = flagConfig.GRPCServerAddress
 	}
 	if setFlags["f"] {
 		config.FileStoragePath = flagConfig.FileStoragePath

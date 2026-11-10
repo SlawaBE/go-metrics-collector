@@ -15,11 +15,12 @@ require (
 	github.com/ultraware/whitespace v0.2.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/tools v0.52.0
+	google.golang.org/grpc v1.74.2
+	google.golang.org/protobuf v1.36.7
 	honnef.co/go/tools v0.8.2
 )
 
 require (
-	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -41,5 +42,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -1,5 +1,6 @@
 {
-  "address": "localhost:8080",
+  "address": "",
+  "grpc_address": "localhost:9090",
   "key": "",
   "crypto_key": "",
   "poll_interval": "2s",

@@ -12,15 +12,23 @@ import (
 
 	"github.com/SlawaBE/go-metrics-collector/internal/asymcrypto"
 	"github.com/SlawaBE/go-metrics-collector/internal/gzip"
+	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
+	pb "github.com/SlawaBE/go-metrics-collector/internal/proto/metrics"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/SlawaBE/go-metrics-collector/internal/utils/checksum"
 	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 )
 
-// Reporter periodically sends the accumulated metrics to the server in a batch
+type Reporter interface {
+	Run(ctx context.Context)
+}
+
+// HTTPReporter periodically sends the accumulated metrics to the server in a batch
 // via POST /updates, using a pool of workers.
-type Reporter struct {
+type HTTPReporter struct {
 	storage        Storage
 	rsaEncryptor   *asymcrypto.RSAEncryptor
 	client         *resty.Client
@@ -43,10 +51,10 @@ type Storage interface {
 // retryIntervals holds increasing send retry intervals (in seconds).
 var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
-// NewReporter creates a reporter that sends metrics to the given address at the
+// NewHTTPReporter creates a reporter that sends metrics to the given address at the
 // given interval, signature key and worker limit.
-func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int, clientIP string) *Reporter {
-	return &Reporter{
+func NewHTTPReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportAddress string, reportInterval time.Duration, secretKey string, rateLimit int, clientIP string) *HTTPReporter {
+	return &HTTPReporter{
 		storage:        storage,
 		rsaEncryptor:   rsaEncryptor,
 		reportInterval: reportInterval,
@@ -59,7 +67,7 @@ func NewReporter(storage Storage, rsaEncryptor *asymcrypto.RSAEncryptor, reportA
 
 // Run starts the metric sending loop to the server until the context is
 // cancelled.
-func (r *Reporter) Run(ctx context.Context) {
+func (r *HTTPReporter) Run(ctx context.Context) {
 	jobs := make(chan []model.Metric, r.rateLimit)
 	var wg sync.WaitGroup
 
@@ -86,7 +94,7 @@ func (r *Reporter) Run(ctx context.Context) {
 	}
 }
 
-func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
+func (r *HTTPReporter) work(ctx context.Context, jobs <-chan []model.Metric) {
 	for metrics := range jobs {
 		if len(metrics) == 0 {
 			continue
@@ -98,7 +106,7 @@ func (r *Reporter) work(ctx context.Context, jobs <-chan []model.Metric) {
 }
 
 // Report consumes the accumulated metrics and sends them to the server once.
-func (r *Reporter) Report() {
+func (r *HTTPReporter) Report() {
 	metrics := r.storage.GetValuesAndClear()
 	if len(metrics) == 0 {
 		return
@@ -108,7 +116,7 @@ func (r *Reporter) Report() {
 	}
 }
 
-func (r *Reporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
+func (r *HTTPReporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
@@ -166,4 +174,96 @@ func httpClient(baseURL string) *resty.Client {
 		}).
 		SetRetryMaxWaitTime(retryIntervals[len(retryIntervals)-1])
 	return client
+}
+
+// GRPCReporter periodically sends the accumulated metrics to the server in a batch
+// via Metrics.UpdateMetrics, using a pool of workers.
+type GRPCReporter struct {
+	storage        Storage
+	client         pb.MetricsClient
+	clientIP       string
+	reportInterval time.Duration
+	rateLimit      int
+}
+
+func NewGRPCReporter(storage Storage, clientIP string, client pb.MetricsClient, reportInterval time.Duration, rateLimit int) *GRPCReporter {
+	return &GRPCReporter{
+		storage:        storage,
+		clientIP:       clientIP,
+		client:         client,
+		reportInterval: reportInterval,
+		rateLimit:      rateLimit,
+	}
+}
+
+// Run starts the metric sending loop to the server until the context is
+// cancelled.
+func (r *GRPCReporter) Run(ctx context.Context) {
+	jobs := make(chan []model.Metric, r.rateLimit)
+	var wg sync.WaitGroup
+
+	for range r.rateLimit {
+		wg.Go(func() {
+			r.work(ctx, jobs)
+		})
+	}
+
+	ticker := time.NewTicker(r.reportInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			close(jobs)
+			wg.Wait()
+			return
+		case <-ticker.C:
+			select {
+			case <-ctx.Done():
+			case jobs <- r.storage.GetValuesAndClear():
+			}
+		}
+	}
+}
+
+func (r *GRPCReporter) work(ctx context.Context, jobs <-chan []model.Metric) {
+	for metrics := range jobs {
+		if len(metrics) == 0 {
+			continue
+		}
+		if err := r.sendMetrics(ctx, metrics); err != nil {
+			logger.Log.Error("error sending metrics", zap.Error(err))
+		}
+	}
+}
+
+func (r *GRPCReporter) sendMetrics(ctx context.Context, metrics []model.Metric) error {
+	grpcMetrics := make([]*pb.Metric, len(metrics))
+	for i, m := range metrics {
+		switch m.MType {
+		case model.Counter:
+			grpcMetrics[i] = pb.Metric_builder{
+				Id:    m.ID,
+				Type:  pb.Metric_COUNTER,
+				Delta: *m.Delta,
+			}.Build()
+		case model.Gauge:
+			grpcMetrics[i] = pb.Metric_builder{
+				Id:    m.ID,
+				Type:  pb.Metric_GAUGE,
+				Value: *m.Value,
+			}.Build()
+		default:
+			return fmt.Errorf("unknown metric type %s", m.MType)
+		}
+	}
+	req := pb.UpdateMetricsRequest_builder{
+		Metrics: grpcMetrics,
+	}.Build()
+	md := metadata.New(map[string]string{"x-real-ip": r.clientIP})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	_, err := r.client.UpdateMetrics(ctx, req)
+	if err != nil {
+		return fmt.Errorf("error from grpc: %w", err)
+	}
+	return nil
 }
