@@ -190,7 +190,7 @@ func Run(config config.Config) error {
 	}
 
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(unaryInterceptors...))
-	pb.RegisterMetricsServer(grpcServer, grpchandler.NewMetricsServer(metricsService))
+	pb.RegisterMetricsServer(grpcServer, grpchandler.NewMetricsServer(metricsService, auditService))
 
 	go func() {
 		logger.Log.Info("GRPC server started")

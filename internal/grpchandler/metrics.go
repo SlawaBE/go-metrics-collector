@@ -10,17 +10,20 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
 type MetricsServer struct {
 	pb.UnimplementedMetricsServer
 	metricsService *service.MetricsService
+	auditPublisher service.AuditPublisher
 }
 
-func NewMetricsServer(service *service.MetricsService) pb.MetricsServer {
+func NewMetricsServer(service *service.MetricsService, auditPublisher service.AuditPublisher) pb.MetricsServer {
 	return &MetricsServer{
 		metricsService: service,
+		auditPublisher: auditPublisher,
 	}
 }
 
@@ -43,5 +46,14 @@ func (s *MetricsServer) UpdateMetrics(ctx context.Context, req *pb.UpdateMetrics
 		logger.Log.Error("error updating metrics", zap.Error(err))
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
+
+	if s.auditPublisher != nil {
+		var address string
+		if p, ok := peer.FromContext(ctx); ok {
+			address = p.Addr.String()
+		}
+		s.auditPublisher.SendMetrics(address, metrics)
+	}
+
 	return &pb.UpdateMetricsResponse{}, nil
 }
