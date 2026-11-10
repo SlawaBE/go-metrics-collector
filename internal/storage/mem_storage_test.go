@@ -130,7 +130,7 @@ func BenchmarkMemStorageUpdateMetric_Gauge(b *testing.B) {
 	ctx := context.Background()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		metric := model.NewGaugeMetric("gauge-1", 1.5)
 		_ = s.UpdateMetric(ctx, metric)
 	}
@@ -141,7 +141,7 @@ func BenchmarkMemStorageUpdateMetric_Counter(b *testing.B) {
 	ctx := context.Background()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		metric := model.NewCounterMetric("counter-1", int64(i))
 		_ = s.UpdateMetric(ctx, metric)
 	}
@@ -157,7 +157,7 @@ func BenchmarkMemStorageUpdateAll(b *testing.B) {
 	ctx := context.Background()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		err := s.UpdateAll(ctx, metrics)
 		if err != nil {
 			b.Fatal(err)
@@ -173,7 +173,7 @@ func BenchmarkMemStorageGetMetric(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := s.GetMetric(ctx, "gauge-500")
 		if err != nil {
 			b.Fatal(err)
@@ -184,14 +184,13 @@ func BenchmarkMemStorageGetMetric(b *testing.B) {
 func BenchmarkMemStorageGetValues(b *testing.B) {
 	s := NewMemStorage()
 	ctx := context.Background()
-	b.StopTimer()
+
 	for i := 0; i < 1000; i++ {
 		_ = s.UpdateMetric(ctx, model.NewGaugeMetric(fmt.Sprintf("gauge-%d", i), float64(i)))
 	}
-	b.StartTimer()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := s.GetValues(ctx)
 		if err != nil {
 			b.Fatal(err)

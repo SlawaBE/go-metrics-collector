@@ -166,7 +166,7 @@ func BenchmarkGZip(b *testing.B) {
 	req.Header.Set("Accept-Encoding", "gzip")
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 	}

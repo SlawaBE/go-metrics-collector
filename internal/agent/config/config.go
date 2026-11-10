@@ -45,13 +45,13 @@ type Config struct {
 // ReadConfig populates the configuration from command-line flags and
 // environment variables (environment takes precedence).
 func ReadConfig() (Config, error) {
-	flagConfig := Config {
-		PollInterval: defaultPollInterval,
+	flagConfig := Config{
+		PollInterval:   defaultPollInterval,
 		ReportInterval: defaultReportInterval,
 	}
 
 	flag.StringVar(&flagConfig.ServerAddress, "a", defaultServerAddress, "address and port of metric server")
-	flag.Var(&flagConfig.PollInterval, "p","metrics polling interval")
+	flag.Var(&flagConfig.PollInterval, "p", "metrics polling interval")
 	flag.Var(&flagConfig.ReportInterval, "r", "metrics report interval")
 	flag.StringVar(&flagConfig.Key, "k", defaultKey, "key for signing request with HMAC SHA-256")
 	flag.IntVar(&flagConfig.RateLimit, "l", defaultRateLimit, "rate limit for sending requests to server")
