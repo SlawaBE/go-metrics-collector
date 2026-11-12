@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	defaultServerAddress     = ""
-	defaultGRPCServerAddress = "localhost:9090"
+	defaultServerAddress     = "localhost:8080"
+	defaultGRPCServerAddress = ""
 	defaultPollInterval      = config.Duration(time.Second * 2)
 	defaultReportInterval    = config.Duration(time.Second * 10)
 	defaultKey               = ""

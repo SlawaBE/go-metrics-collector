@@ -7,10 +7,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// LocalIPv4 returns the first non-loopback IPv4 address found on the host.
-// It is used by the agent to populate the X-Real-IP header when sending
-// metrics to the server
-func LocalIPv4(targetAddr string) (string, error) {
+// LocalIP returns the local IP address for the given remote target address.
+// Works with both IPv4 and IPv6.
+func LocalIP(targetAddr string) (string, error) {
 	conn, err := net.Dial("udp", targetAddr)
 	if err != nil {
 		return "", err
@@ -22,5 +21,5 @@ func LocalIPv4(targetAddr string) (string, error) {
 	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.To4().String(), nil
+	return localAddr.IP.String(), nil
 }

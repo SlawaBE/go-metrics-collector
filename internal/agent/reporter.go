@@ -259,8 +259,10 @@ func (r *GRPCReporter) sendMetrics(ctx context.Context, metrics []model.Metric) 
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: grpcMetrics,
 	}.Build()
-	md := metadata.New(map[string]string{"x-real-ip": r.clientIP})
-	ctx = metadata.NewOutgoingContext(ctx, md)
+	if (r.clientIP != "") {
+	    md := metadata.New(map[string]string{"x-real-ip": r.clientIP})
+	    ctx = metadata.NewOutgoingContext(ctx, md)
+	}
 	_, err := r.client.UpdateMetrics(ctx, req)
 	if err != nil {
 		return fmt.Errorf("error from grpc: %w", err)

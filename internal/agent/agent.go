@@ -39,13 +39,13 @@ func Run(config config.Config) error {
 
 	var reporter Reporter
 	if config.GRPCServerAddress == "" {
-		clientIP, ipErr := utils.LocalIPv4(config.ServerAddress)
+		clientIP, ipErr := utils.LocalIP(config.ServerAddress)
 		if ipErr != nil {
 			logger.Log.Warn("failed to determine local IP, X-Real-IP header will not be set", zap.Error(ipErr))
 		}
 		reporter = NewHTTPReporter(storage, rsaEncryptor, config.ServerAddress, config.ReportInterval.Duration(), config.Key, config.RateLimit, clientIP)
 	} else {
-		clientIP, ipErr := utils.LocalIPv4(config.GRPCServerAddress)
+		clientIP, ipErr := utils.LocalIP(config.GRPCServerAddress)
 		if ipErr != nil {
 			logger.Log.Warn("failed to determine local IP, X-Real-IP header will not be set", zap.Error(ipErr))
 		}

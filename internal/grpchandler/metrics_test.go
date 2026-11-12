@@ -4,16 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	pb "github.com/SlawaBE/go-metrics-collector/internal/proto/metrics"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
+	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func newTestServer() (*MetricsServer, *storage.MemStorage) {
+func newTestServer(t *testing.T) (*MetricsServer, *storage.MemStorage) {
+	t.Helper()
 	stor := storage.NewMemStorage()
 	svc := service.NewMetricsService(stor, nil)
 	return NewMetricsServer(svc, nil).(*MetricsServer), stor
@@ -32,7 +33,7 @@ func TestNewMetricsServer(t *testing.T) {
 }
 
 func TestUpdateMetrics_Success_Counter(t *testing.T) {
-	srv, stor := newTestServer()
+	srv, stor := newTestServer(t)
 
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -54,7 +55,7 @@ func TestUpdateMetrics_Success_Counter(t *testing.T) {
 }
 
 func TestUpdateMetrics_Success_Gauge(t *testing.T) {
-	srv, stor := newTestServer()
+	srv, stor := newTestServer(t)
 
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -76,7 +77,7 @@ func TestUpdateMetrics_Success_Gauge(t *testing.T) {
 }
 
 func TestUpdateMetrics_Success_MixedBatch(t *testing.T) {
-	srv, _ := newTestServer()
+	srv, _ := newTestServer(t)
 
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -93,7 +94,7 @@ func TestUpdateMetrics_Success_MixedBatch(t *testing.T) {
 }
 
 func TestUpdateMetrics_EmptyMetrics_NoError(t *testing.T) {
-	srv, _ := newTestServer()
+	srv, _ := newTestServer(t)
 
 	req := pb.UpdateMetricsRequest_builder{}.Build()
 
@@ -103,7 +104,7 @@ func TestUpdateMetrics_EmptyMetrics_NoError(t *testing.T) {
 }
 
 func TestUpdateMetrics_UnknownMetricType(t *testing.T) {
-	srv, _ := newTestServer()
+	srv, _ := newTestServer(t)
 
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -124,7 +125,7 @@ func TestUpdateMetrics_UnknownMetricType(t *testing.T) {
 }
 
 func TestUpdateMetrics_AccumulatesCounter(t *testing.T) {
-	srv, stor := newTestServer()
+	srv, stor := newTestServer(t)
 
 	req1 := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -148,7 +149,7 @@ func TestUpdateMetrics_AccumulatesCounter(t *testing.T) {
 }
 
 func TestUpdateMetrics_OverwritesGauge(t *testing.T) {
-	srv, stor := newTestServer()
+	srv, stor := newTestServer(t)
 
 	req1 := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -172,7 +173,7 @@ func TestUpdateMetrics_OverwritesGauge(t *testing.T) {
 }
 
 func TestUpdateMetrics_NilRequest_MetricsNil(t *testing.T) {
-	srv, _ := newTestServer()
+	srv, _ := newTestServer(t)
 
 	req := &pb.UpdateMetricsRequest{}
 
@@ -182,7 +183,7 @@ func TestUpdateMetrics_NilRequest_MetricsNil(t *testing.T) {
 }
 
 func BenchmarkUpdateMetrics_Single(b *testing.B) {
-	srv, _ := newTestServer()
+	srv := setupBench(b)
 	ctx := context.Background()
 	req := pb.UpdateMetricsRequest_builder{
 		Metrics: []*pb.Metric{
@@ -197,14 +198,15 @@ func BenchmarkUpdateMetrics_Single(b *testing.B) {
 }
 
 func BenchmarkUpdateMetrics_Batch10(b *testing.B) {
-	srv, _ := newTestServer()
+	srv := setupBench(b)
 	ctx := context.Background()
 	metrics := make([]*pb.Metric, 10)
 	for i := 0; i < 10; i++ {
-		metrics[i] = &pb.Metric{}
-		metrics[i].SetId(string(rune('a' + i)))
-		metrics[i].SetType(pb.Metric_GAUGE)
-		metrics[i].SetValue(float64(i))
+		metrics[i] = (&pb.Metric_builder{
+			Id:    string(rune('a' + i)),
+			Type:  pb.Metric_GAUGE,
+			Value: float64(i),
+		}).Build()
 	}
 	req := pb.UpdateMetricsRequest_builder{Metrics: metrics}.Build()
 
@@ -212,4 +214,10 @@ func BenchmarkUpdateMetrics_Batch10(b *testing.B) {
 	for b.Loop() {
 		_, _ = srv.UpdateMetrics(ctx, req)
 	}
+}
+
+func setupBench(b *testing.B) *MetricsServer {
+	b.Helper()
+	svc := service.NewMetricsService(storage.NewMemStorage(), nil)
+	return NewMetricsServer(svc, nil).(*MetricsServer)
 }
