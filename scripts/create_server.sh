@@ -46,4 +46,3 @@ echo "Серверный сертификат создан:"
 echo "  Ключ: $SRV_KEY"
 echo "  Сертификат: $SRV_CERT"
 echo "  SAN: $SRV_SANS"
-

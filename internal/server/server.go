@@ -192,13 +192,11 @@ func Run(config config.Config) error {
 
 	var grpcOpts []grpc.ServerOption
 
-	if config.TLSCertFile != "" || config.TLSKeyFile != "" || config.TLSCAFile != "" {
-		creds, err := tls.LoadServerCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
-		if err != nil {
-			return fmt.Errorf("error loading TLS credentials: %w", err)
-		}
-		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+	creds, err := tls.LoadServerCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
+	if err != nil {
+		return fmt.Errorf("error loading TLS credentials: %w", err)
 	}
+	grpcOpts = append(grpcOpts, grpc.Creds(creds))
 
 	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(unaryInterceptors...))
 

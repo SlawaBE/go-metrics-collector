@@ -12,5 +12,8 @@
   "audit_queue_size": 100,
   "restore": false,
   "profile_enabled": false,
-  "trusted_subnet": ""
+  "trusted_subnet": "",
+  "grpc_tls_cert_file": "./certs/server/server.crt",
+  "grpc_tls_key_file": "./certs/server/server.key",
+  "grpc_tls_ca_file": "./certs/ca/ca.crt"
 }

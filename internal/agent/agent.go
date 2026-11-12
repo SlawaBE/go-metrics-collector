@@ -16,7 +16,6 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Run starts the agent: launches the runtime poller, the gopsutil poller and
@@ -52,15 +51,11 @@ func Run(config config.Config) error {
 		}
 
 		var grpcDialOpts []grpc.DialOption
-		if config.TLSCertFile != "" || config.TLSKeyFile != "" || config.TLSCAFile != "" {
-			creds, err := tls.LoadClientCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
-			if err != nil {
-				return fmt.Errorf("error loading TLS credentials: %w", err)
-			}
-			grpcDialOpts = append(grpcDialOpts, grpc.WithTransportCredentials(creds))
-		} else {
-			grpcDialOpts = append(grpcDialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		creds, err := tls.LoadClientCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
+		if err != nil {
+			return fmt.Errorf("error loading TLS credentials: %w", err)
 		}
+		grpcDialOpts = append(grpcDialOpts, grpc.WithTransportCredentials(creds))
 
 		conn, err := grpc.NewClient(config.GRPCServerAddress, grpcDialOpts...)
 		if err != nil {

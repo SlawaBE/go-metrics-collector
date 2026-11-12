@@ -13,7 +13,7 @@ echo
 
 mkdir -p "$CA_DIR"
 
-openssl req -x509 -newkey rsa:${KEY_LEN} -nodes \
+openssl req -x509 -newkey rsa:${KEY_LEN} \
   -keyout "$CA_KEY" \
   -out "$CA_CERT" \
   -days "$DAYS" \
