@@ -12,6 +12,7 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	pb "github.com/SlawaBE/go-metrics-collector/internal/proto/metrics"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/tls"
 	"github.com/SlawaBE/go-metrics-collector/internal/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -49,8 +50,19 @@ func Run(config config.Config) error {
 		if ipErr != nil {
 			logger.Log.Warn("failed to determine local IP, X-Real-IP header will not be set", zap.Error(ipErr))
 		}
-		conn, err := grpc.NewClient(config.GRPCServerAddress,
-			grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+		var grpcDialOpts []grpc.DialOption
+		if config.TLSCertFile != "" || config.TLSKeyFile != "" || config.TLSCAFile != "" {
+			creds, err := tls.LoadClientCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
+			if err != nil {
+				return fmt.Errorf("error loading TLS credentials: %w", err)
+			}
+			grpcDialOpts = append(grpcDialOpts, grpc.WithTransportCredentials(creds))
+		} else {
+			grpcDialOpts = append(grpcDialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		}
+
+		conn, err := grpc.NewClient(config.GRPCServerAddress, grpcDialOpts...)
 		if err != nil {
 			return fmt.Errorf("error open grpc connect: %w", err)
 		}

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/model"
-	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	pb "github.com/SlawaBE/go-metrics-collector/internal/proto/metrics"
+	"github.com/SlawaBE/go-metrics-collector/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -17,11 +17,11 @@ import (
 
 // mockMetricsClient implements pb.MetricsClient for testing.
 type mockMetricsClient struct {
-	gotMeta    map[string][]string
-	returnErr  error
-	lastReq    *pb.UpdateMetricsRequest
-	lastCtx    context.Context
-	calls      int
+	gotMeta   map[string][]string
+	returnErr error
+	lastReq   *pb.UpdateMetricsRequest
+	lastCtx   context.Context
+	calls     int
 }
 
 func (m *mockMetricsClient) UpdateMetrics(ctx context.Context, req *pb.UpdateMetricsRequest, opts ...grpc.CallOption) (*pb.UpdateMetricsResponse, error) {

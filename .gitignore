@@ -41,3 +41,4 @@ audit.log
 server.json
 agent.json
 
+certs/

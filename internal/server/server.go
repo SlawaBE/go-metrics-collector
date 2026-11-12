@@ -25,6 +25,7 @@ import (
 	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/tls"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -189,7 +190,19 @@ func Run(config config.Config) error {
 		return fmt.Errorf("error initialization listener: %w", err)
 	}
 
-	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(unaryInterceptors...))
+	var grpcOpts []grpc.ServerOption
+
+	if config.TLSCertFile != "" || config.TLSKeyFile != "" || config.TLSCAFile != "" {
+		creds, err := tls.LoadServerCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
+		if err != nil {
+			return fmt.Errorf("error loading TLS credentials: %w", err)
+		}
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+	}
+
+	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(unaryInterceptors...))
+
+	grpcServer := grpc.NewServer(grpcOpts...)
 	pb.RegisterMetricsServer(grpcServer, grpchandler.NewMetricsServer(metricsService, auditService))
 
 	go func() {

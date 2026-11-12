@@ -22,6 +22,9 @@ const (
 	defaultRateLimit         = 1
 	defaultCryptoKey         = ""
 	defaultConfig            = ""
+	defaultGRPCCertFile      = ""
+	defaultGRPCKeyFile       = ""
+	defaultGRPCCAFile        = ""
 )
 
 // Config describes the metrics collection agent startup parameters.
@@ -37,6 +40,12 @@ type Config struct {
 	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
 	// ConfigFile is the path to config json-file
 	Config string `env:"CONFIG" json:"-"`
+	// TLSCertFile is the path to the TLS certificate file for gRPC client.
+	TLSCertFile string `env:"GRPC_TLS_CERT_FILE" json:"grpc_tls_cert_file"`
+	// TLSKeyFile is the path to the TLS key file for gRPC client.
+	TLSKeyFile string `env:"GRPC_TLS_KEY_FILE" json:"grpc_tls_key_file"`
+	// TLSCAFile is the path to the CA certificate file for server verification.
+	TLSCAFile string `env:"GRPC_TLS_CA_FILE" json:"grpc_tls_ca_file"`
 	// PollInterval is the metrics polling interval (in seconds).
 	PollInterval config.Duration `env:"POLL_INTERVAL" json:"poll_interval"`
 	// ReportInterval is the interval (in seconds) for sending reports to the server.
@@ -60,6 +69,9 @@ func ReadConfig() (Config, error) {
 	flag.StringVar(&flagConfig.Key, "k", defaultKey, "key for signing request with HMAC SHA-256")
 	flag.IntVar(&flagConfig.RateLimit, "l", defaultRateLimit, "rate limit for sending requests to server")
 	flag.StringVar(&flagConfig.CryptoKey, "crypto-key", defaultCryptoKey, "path to file with public key for encryption reports")
+	flag.StringVar(&flagConfig.TLSCertFile, "grpc-tls-cert", defaultGRPCCertFile, "path to TLS certificate file for gRPC client")
+	flag.StringVar(&flagConfig.TLSKeyFile, "grpc-tls-key", defaultGRPCKeyFile, "path to TLS key file for gRPC client")
+	flag.StringVar(&flagConfig.TLSCAFile, "grpc-tls-ca", defaultGRPCCAFile, "path to CA certificate file for gRPC server verification")
 
 	flag.StringVar(&flagConfig.Config, "c", defaultConfig, "path to file with config")
 	flag.StringVar(&flagConfig.Config, "config", defaultConfig, "path to file with config")
@@ -88,6 +100,9 @@ func ReadConfig() (Config, error) {
 		PollInterval:      defaultPollInterval,
 		ReportInterval:    defaultReportInterval,
 		RateLimit:         defaultRateLimit,
+		TLSCertFile:       defaultGRPCCertFile,
+		TLSKeyFile:        defaultGRPCKeyFile,
+		TLSCAFile:         defaultGRPCCAFile,
 	}
 	if configPath != "" {
 		if err := loadJSON(configPath, &config); err != nil {
@@ -115,6 +130,15 @@ func ReadConfig() (Config, error) {
 	}
 	if setFlags["l"] {
 		config.RateLimit = flagConfig.RateLimit
+	}
+	if setFlags["grpc-tls-cert"] {
+		config.TLSCertFile = flagConfig.TLSCertFile
+	}
+	if setFlags["grpc-tls-key"] {
+		config.TLSKeyFile = flagConfig.TLSKeyFile
+	}
+	if setFlags["grpc-tls-ca"] {
+		config.TLSCAFile = flagConfig.TLSCAFile
 	}
 	config.Config = configPath
 

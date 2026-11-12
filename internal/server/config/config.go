@@ -29,6 +29,9 @@ const (
 	defaultProfileEnabled    = false
 	defaultConfig            = ""
 	defaultTrustedSubnet     = ""
+	defaultGRPCCertFile      = ""
+	defaultGRPCKeyFile       = ""
+	defaultGRPCCAFile        = ""
 )
 
 // Config describes the metrics server startup parameters.
@@ -57,6 +60,12 @@ type Config struct {
 	// TrustedSubnet is a CIDR string; when set, agent requests must come from
 	// an IP within this subnet (checked via X-Real-IP header).
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	// TLSCertFile is the path to the TLS certificate file for the gRPC server.
+	TLSCertFile string `env:"GRPC_TLS_CERT_FILE" json:"grpc_tls_cert_file"`
+	// TLSKeyFile is the path to the TLS key file for the gRPC server.
+	TLSKeyFile string `env:"GRPC_TLS_KEY_FILE" json:"grpc_tls_key_file"`
+	// TLSCAFile is the path to the CA certificate file for client verification (mTLS).
+	TLSCAFile string `env:"GRPC_TLS_CA_FILE" json:"grpc_tls_ca_file"`
 	// StoreInterval is the interval (in seconds) for saving metrics to a file.
 	StoreInterval config.Duration `env:"STORE_INTERVAL" json:"store_interval"`
 	// AuditQueueSize limits the size of the audit event queue.
@@ -88,6 +97,9 @@ func ReadConfig() (Config, error) {
 	flag.IntVar(&flagConfig.AuditQueueSize, "audit-queue-size", defaultAuditQueueSize, "size of the audit event queue")
 	flag.BoolVar(&flagConfig.Restore, "r", defaultRestore, "restore metric from file")
 	flag.BoolVar(&flagConfig.ProfileEnabled, "p", defaultProfileEnabled, "enable profiling")
+	flag.StringVar(&flagConfig.TLSCertFile, "grpc-tls-cert", defaultGRPCCertFile, "path to TLS certificate file for gRPC server")
+	flag.StringVar(&flagConfig.TLSKeyFile, "grpc-tls-key", defaultGRPCKeyFile, "path to TLS key file for gRPC server")
+	flag.StringVar(&flagConfig.TLSCAFile, "grpc-tls-ca", defaultGRPCCAFile, "path to CA certificate file for gRPC client verification")
 
 	flag.StringVar(&flagConfig.Config, "c", defaultConfig, "path to file with config")
 	flag.StringVar(&flagConfig.Config, "config", defaultConfig, "path to file with config")
@@ -123,6 +135,9 @@ func ReadConfig() (Config, error) {
 		Restore:           defaultRestore,
 		ProfileEnabled:    defaultProfileEnabled,
 		TrustedSubnet:     defaultTrustedSubnet,
+		TLSCertFile:       defaultGRPCCertFile,
+		TLSKeyFile:        defaultGRPCKeyFile,
+		TLSCAFile:         defaultGRPCCAFile,
 	}
 	if configPath != "" {
 		if err := loadJSON(configPath, &config); err != nil {
@@ -171,6 +186,15 @@ func ReadConfig() (Config, error) {
 	}
 	if setFlags["p"] {
 		config.ProfileEnabled = flagConfig.ProfileEnabled
+	}
+	if setFlags["grpc-tls-cert"] {
+		config.TLSCertFile = flagConfig.TLSCertFile
+	}
+	if setFlags["grpc-tls-key"] {
+		config.TLSKeyFile = flagConfig.TLSKeyFile
+	}
+	if setFlags["grpc-tls-ca"] {
+		config.TLSCAFile = flagConfig.TLSCAFile
 	}
 	config.Config = configPath
 
