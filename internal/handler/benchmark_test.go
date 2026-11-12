@@ -32,7 +32,7 @@ func BenchmarkJSONUpdateMetricHandler(b *testing.B) {
 	body := []byte(`{"id":"bench","type":"gauge","value":1.1}`)
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		req := httptest.NewRequest(http.MethodPost, "/update", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
@@ -48,7 +48,7 @@ func BenchmarkJSONBatchUpdateMetricsHandler(b *testing.B) {
 	body := []byte(`[{"id":"g0","type":"gauge","value":1.1},{"id":"g1","type":"gauge","value":2.2},{"id":"g2","type":"gauge","value":3.3},{"id":"g3","type":"gauge","value":4.4},{"id":"g4","type":"gauge","value":5.5}]`)
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()

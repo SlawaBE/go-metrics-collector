@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -15,14 +16,19 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/SlawaBE/go-metrics-collector/internal/db"
+	"github.com/SlawaBE/go-metrics-collector/internal/grpchandler"
 	"github.com/SlawaBE/go-metrics-collector/internal/handler"
+	"github.com/SlawaBE/go-metrics-collector/internal/interceptor"
 	"github.com/SlawaBE/go-metrics-collector/internal/logger"
 	"github.com/SlawaBE/go-metrics-collector/internal/middleware"
+	pb "github.com/SlawaBE/go-metrics-collector/internal/proto/metrics"
 	"github.com/SlawaBE/go-metrics-collector/internal/server/config"
 	"github.com/SlawaBE/go-metrics-collector/internal/service"
 	"github.com/SlawaBE/go-metrics-collector/internal/storage"
+	"github.com/SlawaBE/go-metrics-collector/internal/tls"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // InitRouter builds the chi router with all HTTP endpoints of the server.
@@ -156,6 +162,15 @@ func Run(config config.Config) error {
 		}
 		r = decryptor.MiddlewareDecryptor(r)
 	}
+	var unaryInterceptors []grpc.UnaryServerInterceptor
+	if config.TrustedSubnet != "" {
+		_, ipNet, netErr := net.ParseCIDR(config.TrustedSubnet)
+		if netErr != nil {
+			return fmt.Errorf("invalid trusted_subnet CIDR: %w", netErr)
+		}
+		r = middleware.TrustedSubnetMiddleware(ipNet, r)
+		unaryInterceptors = append(unaryInterceptors, interceptor.NewTrustedSubnetInterceptor(ipNet))
+	}
 	r = middleware.RequestLogger(r)
 
 	httpServer := &http.Server{
@@ -164,9 +179,34 @@ func Run(config config.Config) error {
 	}
 
 	go func() {
-		logger.Log.Info("Server started")
+		logger.Log.Info("HTTP server started")
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Log.Error("Server error", zap.Error(err))
+		}
+	}()
+
+	listen, err := net.Listen("tcp", config.GRPCServerAddress)
+	if err != nil {
+		return fmt.Errorf("error initialization listener: %w", err)
+	}
+
+	var grpcOpts []grpc.ServerOption
+
+	creds, err := tls.LoadServerCredentials(config.TLSCertFile, config.TLSKeyFile, config.TLSCAFile)
+	if err != nil {
+		return fmt.Errorf("error loading TLS credentials: %w", err)
+	}
+	grpcOpts = append(grpcOpts, grpc.Creds(creds))
+
+	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(unaryInterceptors...))
+
+	grpcServer := grpc.NewServer(grpcOpts...)
+	pb.RegisterMetricsServer(grpcServer, grpchandler.NewMetricsServer(metricsService, auditService))
+
+	go func() {
+		logger.Log.Info("GRPC server started")
+		if err := grpcServer.Serve(listen); err != nil {
+			logger.Log.Error("error running server", zap.Error(err))
 		}
 	}()
 
@@ -181,6 +221,8 @@ func Run(config config.Config) error {
 	if err := httpServer.Shutdown(shutdownTimeout); err != nil {
 		logger.Log.Error("Error during server shutdown", zap.Error(err))
 	}
+
+	grpcServer.GracefulStop()
 
 	if profileServer != nil {
 		if err := profileServer.Shutdown(shutdownTimeout); err != nil {

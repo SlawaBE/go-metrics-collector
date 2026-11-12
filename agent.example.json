@@ -1,8 +1,12 @@
 {
-  "address": "localhost:8080",
+  "address": "",
+  "grpc_address": "localhost:9090",
   "key": "",
   "crypto_key": "",
   "poll_interval": "2s",
   "report_interval": "10s",
-  "rate_limit": 1
+  "rate_limit": 1,
+  "grpc_tls_cert_file": "./certs/client/agent.crt",
+  "grpc_tls_key_file": "./certs/client/agent.key",
+  "grpc_tls_ca_file": "./certs/ca/ca.crt"
 }

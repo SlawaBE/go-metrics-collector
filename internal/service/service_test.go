@@ -132,7 +132,7 @@ func BenchmarkMetricsService_UpdateMetric(b *testing.B) {
 	metric := model.NewGaugeMetric("gauge-1", 1.5)
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if err := svc.UpdateMetric(ctx, metric); err != nil {
 			b.Fatal(err)
 		}
@@ -149,7 +149,7 @@ func BenchmarkMetricsService_UpdateMetrics(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if err := svc.UpdateMetrics(ctx, metrics); err != nil {
 			b.Fatal(err)
 		}
@@ -171,7 +171,7 @@ func BenchmarkMetricsService_List(b *testing.B) {
 
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if _, err := svc.List(ctx); err != nil {
 					b.Fatal(err)
 				}
